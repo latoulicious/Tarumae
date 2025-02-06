@@ -1,33 +1,30 @@
 package config
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	DiscordToken string `json:"discord_token"`
+	DiscordToken string
 }
 
 func LoadConfig() (*Config, error) {
-	// Load the configuration file
-	configFile := "config.json"
-	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		return nil, err
-	}
-
-	data, err := ioutil.ReadFile(configFile)
+	// Load environment variables from .env file
+	err := godotenv.Load()
 	if err != nil {
 		return nil, err
 	}
 
-	var cfg Config
-	err = json.Unmarshal(data, &cfg)
-	if err != nil {
-		return nil, err
+	discordToken := os.Getenv("DISCORD_TOKEN")
+	if discordToken == "" {
+		return nil, ErrDiscordTokenNotSet
 	}
 
-	return &cfg, nil
+	return &Config{
+		DiscordToken: discordToken,
+	}, nil
 }
+
+var ErrDiscordTokenNotSet = os.ErrInvalid

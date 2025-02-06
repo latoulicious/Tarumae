@@ -1,9 +1,6 @@
 # Use an official Go runtime as a parent image
 FROM golang:1.19-alpine AS builder
 
-# Install youtube-dl
-RUN apk add --no-cache youtube-dl
-
 # Set the working directory in the container
 WORKDIR /app
 
@@ -19,17 +16,17 @@ RUN go build -o main .
 # Use a smaller base image for the final runtime
 FROM alpine:latest
 
-# Install youtube-dl
-RUN apk add --no-cache youtube-dl
-
 # Set the working directory in the container
 WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache ffmpeg
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/main .
 
-# Copy the configuration file
-COPY config.json .
+# Copy the .env file
+COPY .env .
 
 # Run the application
 CMD ["./main"]

@@ -7,11 +7,18 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/latoulicious/Tarumae/internal/config"
-	"github.com/latoulicious/Tarumae/internal/handlers"
+	"github.com/joho/godotenv"
+	"github.com/latoulicious/tarumae/internal/config"
+	"github.com/latoulicious/tarumae/internal/handlers"
 )
 
 func main() {
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+
 	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
