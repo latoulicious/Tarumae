@@ -14,7 +14,7 @@ RUN go mod download
 RUN go build -o main .
 
 # Use a smaller base image for the final runtime
-FROM alpine:latest
+FROM alpine:3.15
 
 # Set the working directory in the container
 WORKDIR /app

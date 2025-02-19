@@ -1,10 +1,18 @@
-version: '3.8'
-
 services:
   bot:
     build: .
-    container_name: discord-music-bot
-    environment:
-      - DISCORD_TOKEN=your_discord_bot_token
+    container_name: tarumae
+    env_file:
+      - .env
     ports:
       - "8080:8080"
+    depends_on:
+      - lavalink
+
+  lavalink:
+    image: fredboat/lavalink:3.7.5
+    container_name: lavalink
+    ports:
+      - "2333:2333"
+    environment:
+      - LAVALINK_SERVER_PASSWORD=your_lavalink_password
