@@ -29,6 +29,6 @@ func ServersCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	}
 
-	response += "\n\n💡 **Tip**: Use `!leave <server_id>` to leave a server, or `!leavebyname <server_name>` to leave by name."
+	response += "\n\n💡 **Tip**: Use `!leave <server_id>` to leave a server."
 	s.ChannelMessageSend(m.ChannelID, response)
 }

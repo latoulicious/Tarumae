@@ -1,26 +1,26 @@
 package commands
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/bwmarrin/discordgo"
 )
 
 func SkipCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if Ctrl.AudioStream != nil {
-		if _, err := Ctrl.AudioStream.Seek(0, io.SeekEnd); err != nil {
-			if _, err := s.ChannelMessageSend(m.ChannelID, "Failed to skip the audio stream."); err != nil {
-				fmt.Println("Error sending message:", err)
-			}
-			return
-		}
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Skipped to the next song."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
-	} else {
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Nothing is playing."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
+	guildID := m.GuildID
+
+	// Get queue for this guild
+	queue := getQueue(guildID)
+	if queue == nil || !queue.IsPlaying() {
+		s.ChannelMessageSend(m.ChannelID, "Nothing is currently playing.")
+		return
 	}
+
+	// Stop current pipeline
+	if pipeline := queue.GetPipeline(); pipeline != nil {
+		pipeline.Stop()
+	}
+
+	s.ChannelMessageSend(m.ChannelID, "⏭️ Skipped current song.")
+
+	// Start next song in queue
+	startNextInQueue(s, m, queue)
 }

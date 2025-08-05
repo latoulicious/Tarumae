@@ -9,15 +9,20 @@ import (
 )
 
 func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// Add comprehensive nil checks
+	if s == nil || m == nil || m.Author == nil {
+		return
+	}
+
 	// Ignore all messages created by the bot itself
-	if m.Author.ID == s.State.User.ID {
+	if s.State.User != nil && m.Author.ID == s.State.User.ID {
 		return
 	}
 
 	// Check if the bot is mentioned
-	if m.MentionEveryone || len(m.Mentions) > 0 {
+	if s.State.User != nil && (m.MentionEveryone || len(m.Mentions) > 0) {
 		for _, mention := range m.Mentions {
-			if mention.ID == s.State.User.ID {
+			if mention != nil && mention.ID == s.State.User.ID {
 				// Randomly choose between two responses
 				responses := []string{
 					"I'm Hokko Tarumae, Tomakomai's Tourism Ambassador!★",
@@ -32,7 +37,7 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// Check if the message is a command
-	if strings.HasPrefix(m.Content, "!") {
+	if m.Content != "" && strings.HasPrefix(m.Content, "!") {
 		args := strings.Split(m.Content, " ")
 		command := strings.TrimPrefix(args[0], "!")
 
@@ -53,12 +58,8 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 			commands.ServersCommand(s, m)
 		case "leave":
 			commands.LeaveCommand(s, m, args[1:])
-		case "leavebyname":
-			commands.LeaveByNameCommand(s, m, args[1:])
-		case "confirm":
-			commands.ConfirmLeaveCommand(s, m, args[1:])
-		case "confirmbyname":
-			commands.ConfirmLeaveByNameCommand(s, m, args[1:])
+		case "queue":
+			commands.QueueCommand(s, m, args[1:])
 		default:
 			s.ChannelMessageSend(m.ChannelID, "Unknown command. Try `!help` to see all available commands.")
 		}

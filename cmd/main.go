@@ -8,6 +8,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
+	"github.com/latoulicious/Tarumae/internal/commands"
 	"github.com/latoulicious/Tarumae/internal/config"
 	"github.com/latoulicious/Tarumae/internal/handlers"
 )
@@ -34,10 +35,19 @@ func main() {
 	// Register the message handler
 	dg.AddHandler(handlers.MessageHandler)
 
+	// Register the slash command handler
+	dg.AddHandler(handlers.SlashCommandHandler)
+
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
 		log.Fatalf("Failed to open Discord session: %v", err)
+	}
+
+	// Register slash commands
+	err = commands.RegisterSlashCommands(dg)
+	if err != nil {
+		log.Printf("Failed to register slash commands: %v", err)
 	}
 
 	log.Println("Bot is running. Press CTRL-C to exit.")

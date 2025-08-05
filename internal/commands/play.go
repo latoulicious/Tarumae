@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/latoulicious/Tarumae/pkg/common"
@@ -20,7 +19,7 @@ var (
 	pipelineMutex   sync.RWMutex
 )
 
-// PlayCommand handles the play command with robust error handling and recovery
+// PlayCommand handles the play command with queue integration
 func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	if len(args) < 1 {
 		s.ChannelMessageSend(m.ChannelID, "Please provide a YouTube URL.")
@@ -30,17 +29,8 @@ func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 	guildID := m.GuildID
 	url := args[0]
 
-	// Check if there's already an active pipeline for this guild
-	pipelineMutex.RLock()
-	if pipeline, exists := activePipelines[guildID]; exists && pipeline.IsPlaying() {
-		pipelineMutex.RUnlock()
-		s.ChannelMessageSend(m.ChannelID, "Already playing audio! Use `!stop` first.")
-		return
-	}
-	pipelineMutex.RUnlock()
-
-	log.Printf("Processing play command for URL: %s in guild: %s", url, guildID)
-	s.ChannelMessageSend(m.ChannelID, "🎵 Fetching audio stream, please wait...")
+	// Get or create queue for this guild
+	queue := getOrCreateQueue(guildID)
 
 	// Validate and get stream URL
 	streamURL, title, err := getYouTubeAudioStreamWithMetadata(url)
@@ -50,58 +40,18 @@ func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 		return
 	}
 
-	// Find user's voice channel and connect
-	vc, err := common.FindAndJoinUserVoiceChannel(s, m.Author.ID, guildID)
-	if err != nil {
-		log.Printf("Error joining voice channel: %v", err)
-		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
-		return
+	// Add to queue
+	queue.Add(streamURL, title, m.Author.Username)
+
+	// Send confirmation
+	queueSize := queue.Size()
+	response := fmt.Sprintf("✅ Added **%s** to queue (Position: %d)", title, queueSize)
+	s.ChannelMessageSend(m.ChannelID, response)
+
+	// If nothing is currently playing, start playing
+	if !queue.IsPlaying() {
+		startNextInQueue(s, m, queue)
 	}
-
-	// Create and start the robust audio pipeline
-	pipeline := common.NewAudioPipeline(vc)
-
-	// Store the pipeline for management
-	pipelineMutex.Lock()
-	activePipelines[guildID] = pipeline
-	pipelineMutex.Unlock()
-
-	// Clean up pipeline when done
-	defer func() {
-		pipelineMutex.Lock()
-		delete(activePipelines, guildID)
-		pipelineMutex.Unlock()
-	}()
-
-	// Send now playing message
-	nowPlayingMsg := fmt.Sprintf("🎶 Now playing: **%s**", title)
-	s.ChannelMessageSend(m.ChannelID, nowPlayingMsg)
-
-	// Start streaming with error handling
-	err = pipeline.PlayStream(streamURL)
-	if err != nil {
-		log.Printf("Error starting audio pipeline: %v", err)
-		s.ChannelMessageSend(m.ChannelID, "❌ Failed to start audio playback.")
-		vc.Disconnect()
-		return
-	}
-
-	log.Printf("Audio pipeline started successfully for guild: %s", guildID)
-
-	// Monitor the pipeline and handle completion
-	go func() {
-		// Wait for pipeline to finish (either naturally or due to error)
-		for pipeline.IsPlaying() {
-			time.Sleep(1 * time.Second)
-		}
-
-		log.Printf("Audio playback completed for guild: %s", guildID)
-		s.ChannelMessageSend(m.ChannelID, "✅ Playback finished.")
-
-		// Disconnect after a brief delay
-		time.Sleep(2 * time.Second)
-		vc.Disconnect()
-	}()
 }
 
 // getYouTubeAudioStreamWithMetadata extracts both stream URL and metadata

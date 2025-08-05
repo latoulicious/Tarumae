@@ -5,21 +5,27 @@ import (
 	"github.com/latoulicious/Tarumae/pkg/common"
 )
 
-// StopCommand stops the current audio playback
+// StopCommand stops the current audio playback and clears queue
 func StopCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	guildID := m.GuildID
 
-	pipelineMutex.RLock()
-	pipeline, exists := activePipelines[guildID]
-	pipelineMutex.RUnlock()
-
-	if !exists || !pipeline.IsPlaying() {
+	// Get queue for this guild
+	queue := getQueue(guildID)
+	if queue == nil || !queue.IsPlaying() {
 		s.ChannelMessageSend(m.ChannelID, "No audio is currently playing.")
 		return
 	}
 
-	pipeline.Stop()
-	s.ChannelMessageSend(m.ChannelID, "Stopped playback.")
+	// Stop current pipeline
+	if pipeline := queue.GetPipeline(); pipeline != nil {
+		pipeline.Stop()
+	}
+
+	// Clear queue and stop playing
+	queue.Clear()
+	queue.SetPlaying(false)
+
+	s.ChannelMessageSend(m.ChannelID, "⏹️ Stopped playback and cleared queue.")
 
 	// Find and disconnect from voice channel
 	common.DisconnectFromVoiceChannel(s, guildID)
