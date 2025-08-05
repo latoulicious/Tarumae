@@ -32,7 +32,7 @@ This approach eliminates the DCA black box and gives us complete control over th
 1. Clone the repository
 2. Install dependencies: `go mod tidy`
 3. Set up your Discord bot token
-4. Run: `go run main/main.go`
+4. Run: `go run cmd/main.go`
 
 ## Commands
 
