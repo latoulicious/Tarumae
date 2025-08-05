@@ -73,7 +73,7 @@ func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 func getYouTubeAudioStream(url string) (string, error) {
 	// Try different format options to avoid 403 errors
 	cmd := exec.Command("yt-dlp",
-		"-f", "worstaudio[ext=m4a]/worstaudio[ext=webm]/worstaudio",
+		"-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio",
 		"--no-playlist",
 		"--no-warnings",
 		"-g", url)
@@ -86,7 +86,7 @@ func getYouTubeAudioStream(url string) (string, error) {
 		// If the first attempt fails, try with different options
 		log.Println("First attempt failed, trying alternative format...")
 		cmd = exec.Command("yt-dlp",
-			"-f", "worstaudio",
+			"-f", "bestaudio",
 			"--no-playlist",
 			"--no-warnings",
 			"--extractor-args", "youtube:player_client=android",
