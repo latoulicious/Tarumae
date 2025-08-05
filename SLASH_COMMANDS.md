@@ -53,8 +53,9 @@ go run tools/slash-manager.go -action delete-specific -command play
 
 1. **`internal/handlers/slash.go`** - Slash command interaction handler
 2. **`internal/commands/slash.go`** - Slash command registration and management
-3. **`cmd/main.go`** - Updated to register slash commands on startup
+3. **`cmd/main.go`** - Updated to handle slash command interactions
 4. **`tools/slash-manager.go`** - Command-line tool for managing slash commands
+5. **`Makefile`** - Build system with clean commands
 
 ### Key Features
 
@@ -68,11 +69,12 @@ go run tools/slash-manager.go -action delete-specific -command play
 
 The slash command system:
 
-1. **Registers commands globally** using Discord's Application Commands API
-2. **Handles interactions** through the `InteractionCreate` event
+1. **Registers commands globally** using Discord's Application Commands API via the slash manager tool
+2. **Handles interactions** through the `InteractionCreate` event in main.go
 3. **Converts slash interactions** to compatible message format for existing command logic
 4. **Provides immediate feedback** with deferred responses for long-running operations
 5. **Supports autocomplete** for better user experience
+6. **Separates concerns** - registration is handled by tools, runtime handling by main.go
 
 ## Migration from Guild Commands
 

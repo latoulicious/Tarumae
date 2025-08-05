@@ -29,13 +29,13 @@ func QueueCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []strin
 	switch subcommand {
 	case "add":
 		if len(args) < 2 {
-			s.ChannelMessageSend(m.ChannelID, "Usage: `!queue add <youtube_url>`")
+			sendEmbedMessage(s, m.ChannelID, "❌ Usage Error", "Usage: `!queue add <youtube_url>`", 0xff0000)
 			return
 		}
 		addToQueue(s, m, args[1:])
 	case "remove":
 		if len(args) < 2 {
-			s.ChannelMessageSend(m.ChannelID, "Usage: `!queue remove <index>`")
+			sendEmbedMessage(s, m.ChannelID, "❌ Usage Error", "Usage: `!queue remove <index>`", 0xff0000)
 			return
 		}
 		removeFromQueue(s, m, args[1:])
@@ -44,8 +44,22 @@ func QueueCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []strin
 	case "list":
 		showQueue(s, m)
 	default:
-		s.ChannelMessageSend(m.ChannelID, "Usage: `!queue [add|remove|clear|list] [args...]`")
+		sendEmbedMessage(s, m.ChannelID, "❌ Usage Error", "Usage: `!queue [add|remove|clear|list] [args...]`", 0xff0000)
 	}
+}
+
+// sendEmbedMessage is a helper function to send embed messages
+func sendEmbedMessage(s *discordgo.Session, channelID, title, description string, color int) {
+	embed := &discordgo.MessageEmbed{
+		Title:       title,
+		Description: description,
+		Color:       color,
+		Timestamp:   time.Now().Format(time.RFC3339),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Hokko Tarumae | Music Bot",
+		},
+	}
+	s.ChannelMessageSendEmbed(channelID, embed)
 }
 
 // addToQueue adds a song to the queue
@@ -59,17 +73,17 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []string)
 	// Validate and get stream URL
 	streamURL, title, err := getYouTubeAudioStreamWithMetadata(url)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ Failed to get audio stream. Please check the URL.")
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Failed to get audio stream. Please check the URL.", 0xff0000)
 		return
 	}
 
 	// Add to queue
 	queue.Add(streamURL, title, m.Author.Username)
 
-	// Send confirmation
+	// Send confirmation with embed
 	queueSize := queue.Size()
-	response := fmt.Sprintf("✅ Added **%s** to queue (Position: %d)", title, queueSize)
-	s.ChannelMessageSend(m.ChannelID, response)
+	description := fmt.Sprintf("✅ Added **%s** to queue (Position: %d)", title, queueSize)
+	sendEmbedMessage(s, m.ChannelID, "🎵 Song Added", description, 0x00ff00)
 
 	// If nothing is currently playing, start playing
 	if !queue.IsPlaying() {
@@ -83,7 +97,7 @@ func removeFromQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []st
 	queue := getQueue(guildID)
 
 	if queue == nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ No queue found for this server.")
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "No queue found for this server.", 0xff0000)
 		return
 	}
 
@@ -91,7 +105,7 @@ func removeFromQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []st
 	var index int
 	_, err := fmt.Sscanf(args[0], "%d", &index)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ Invalid index. Use `!queue list` to see queue positions.")
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Invalid index. Use `!queue list` to see queue positions.", 0xff0000)
 		return
 	}
 
@@ -100,11 +114,11 @@ func removeFromQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []st
 
 	err = queue.Remove(index)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("❌ %s", err.Error()))
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", err.Error(), 0xff0000)
 		return
 	}
 
-	s.ChannelMessageSend(m.ChannelID, "✅ Removed song from queue.")
+	sendEmbedMessage(s, m.ChannelID, "✅ Success", "Removed song from queue.", 0x00ff00)
 }
 
 // clearQueue clears the entire queue
@@ -113,12 +127,12 @@ func clearQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 	queue := getQueue(guildID)
 
 	if queue == nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ No queue found for this server.")
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "No queue found for this server.", 0xff0000)
 		return
 	}
 
 	queue.Clear()
-	s.ChannelMessageSend(m.ChannelID, "✅ Queue cleared.")
+	sendEmbedMessage(s, m.ChannelID, "✅ Success", "Queue cleared.", 0x00ff00)
 }
 
 // showQueue shows the current queue
@@ -127,32 +141,54 @@ func showQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 	queue := getQueue(guildID)
 
 	if queue == nil || (queue.Size() == 0 && queue.Current() == nil) {
-		s.ChannelMessageSend(m.ChannelID, "📭 Queue is empty.")
+		sendEmbedMessage(s, m.ChannelID, "📭 Queue Empty", "No songs in the queue.", 0x808080)
 		return
 	}
 
-	var response strings.Builder
-	response.WriteString("🎵 **Music Queue**\n\n")
+	// Create embed for queue display
+	embed := &discordgo.MessageEmbed{
+		Title:     "🎵 Music Queue",
+		Color:     0x0099ff,
+		Timestamp: time.Now().Format(time.RFC3339),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Hokko Tarumae | Music Bot",
+		},
+	}
+
+	var fields []*discordgo.MessageEmbedField
 
 	// Show currently playing
 	if current := queue.Current(); current != nil {
-		response.WriteString(fmt.Sprintf("🎶 **Now Playing:** %s (Requested by: %s)\n\n",
-			current.Title, current.RequestedBy))
+		fields = append(fields, &discordgo.MessageEmbedField{
+			Name:   "🎶 Now Playing",
+			Value:  fmt.Sprintf("**%s**\nRequested by: %s", current.Title, current.RequestedBy),
+			Inline: false,
+		})
 	}
 
 	// Show queue items
 	items := queue.List()
 	if len(items) > 0 {
-		response.WriteString("📋 **Up Next:**\n")
+		var queueText strings.Builder
 		for i, item := range items {
-			response.WriteString(fmt.Sprintf("%d. **%s** (Requested by: %s)\n",
-				i+1, item.Title, item.RequestedBy))
+			queueText.WriteString(fmt.Sprintf("%d. **%s** (Requested by: %s)\n", i+1, item.Title, item.RequestedBy))
 		}
+
+		fields = append(fields, &discordgo.MessageEmbedField{
+			Name:   "📋 Up Next",
+			Value:  queueText.String(),
+			Inline: false,
+		})
 	} else {
-		response.WriteString("📋 No songs in queue.\n")
+		fields = append(fields, &discordgo.MessageEmbedField{
+			Name:   "📋 Up Next",
+			Value:  "No songs in queue.",
+			Inline: false,
+		})
 	}
 
-	s.ChannelMessageSend(m.ChannelID, response.String())
+	embed.Fields = fields
+	s.ChannelMessageSendEmbed(m.ChannelID, embed)
 }
 
 // startNextInQueue starts playing the next song in the queue
@@ -168,7 +204,7 @@ func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *c
 	// Find user's voice channel and connect
 	vc, err := common.FindAndJoinUserVoiceChannel(s, m.Author.ID, m.GuildID)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", err.Error(), 0xff0000)
 		queue.SetPlaying(false)
 		return
 	}
@@ -179,15 +215,14 @@ func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *c
 	pipeline := common.NewAudioPipeline(vc)
 	queue.SetPipeline(pipeline)
 
-	// Send now playing message
-	nowPlayingMsg := fmt.Sprintf("🎶 Now playing: **%s** (Requested by: %s)",
-		item.Title, item.RequestedBy)
-	s.ChannelMessageSend(m.ChannelID, nowPlayingMsg)
+	// Send now playing message with embed
+	description := fmt.Sprintf("**%s**\nRequested by: %s", item.Title, item.RequestedBy)
+	sendEmbedMessage(s, m.ChannelID, "🎶 Now Playing", description, 0x00ff00)
 
 	// Start streaming
 	err = pipeline.PlayStream(item.URL)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ Failed to start audio playback.")
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Failed to start audio playback.", 0xff0000)
 		vc.Disconnect()
 		queue.SetPlaying(false)
 		return

@@ -22,7 +22,7 @@ var (
 // PlayCommand handles the play command with queue integration
 func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	if len(args) < 1 {
-		s.ChannelMessageSend(m.ChannelID, "Please provide a YouTube URL.")
+		sendEmbedMessage(s, m.ChannelID, "❌ Usage Error", "Please provide a YouTube URL.", 0xff0000)
 		return
 	}
 
@@ -36,17 +36,17 @@ func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 	streamURL, title, err := getYouTubeAudioStreamWithMetadata(url)
 	if err != nil {
 		log.Printf("Error fetching stream URL: %v", err)
-		s.ChannelMessageSend(m.ChannelID, "❌ Failed to get audio stream. Please check the URL.")
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Failed to get audio stream. Please check the URL.", 0xff0000)
 		return
 	}
 
 	// Add to queue
 	queue.Add(streamURL, title, m.Author.Username)
 
-	// Send confirmation
+	// Send confirmation with embed
 	queueSize := queue.Size()
-	response := fmt.Sprintf("✅ Added **%s** to queue (Position: %d)", title, queueSize)
-	s.ChannelMessageSend(m.ChannelID, response)
+	description := fmt.Sprintf("✅ Added **%s** to queue (Position: %d)", title, queueSize)
+	sendEmbedMessage(s, m.ChannelID, "🎵 Song Added", description, 0x00ff00)
 
 	// If nothing is currently playing, start playing
 	if !queue.IsPlaying() {
@@ -131,9 +131,9 @@ func StatusCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []stri
 	pipelineMutex.RUnlock()
 
 	if !exists || !pipeline.IsPlaying() {
-		s.ChannelMessageSend(m.ChannelID, "🔇 No audio is currently playing.")
+		sendEmbedMessage(s, m.ChannelID, "🔇 No Audio", "No audio is currently playing.", 0x808080)
 		return
 	}
 
-	s.ChannelMessageSend(m.ChannelID, "🎵 Audio is currently playing.")
+	sendEmbedMessage(s, m.ChannelID, "🎵 Audio Playing", "Audio is currently playing.", 0x00ff00)
 }

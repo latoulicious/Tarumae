@@ -8,7 +8,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
-	"github.com/latoulicious/Tarumae/internal/commands"
 	"github.com/latoulicious/Tarumae/internal/config"
 	"github.com/latoulicious/Tarumae/internal/handlers"
 )
@@ -42,12 +41,6 @@ func main() {
 	err = dg.Open()
 	if err != nil {
 		log.Fatalf("Failed to open Discord session: %v", err)
-	}
-
-	// Register slash commands
-	err = commands.RegisterSlashCommands(dg)
-	if err != nil {
-		log.Printf("Failed to register slash commands: %v", err)
 	}
 
 	log.Println("Bot is running. Press CTRL-C to exit.")
