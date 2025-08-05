@@ -46,7 +46,7 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "skip":
 			commands.SkipCommand(s, m)
 		case "stop":
-			commands.StopCommand(s, m)
+			commands.StopCommand(s, m, args[1:])
 		default:
 			s.ChannelMessageSend(m.ChannelID, "Unknown command. Try !play, !pause, !resume, !skip, or !stop.")
 		}

@@ -1,20 +1,26 @@
 package commands
 
 import (
-	"fmt"
-
 	"github.com/bwmarrin/discordgo"
+	"github.com/latoulicious/Tarumae/pkg/common"
 )
 
-func StopCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if Ctrl.AudioStream != nil {
-		Ctrl.AudioStream = nil // Clear the current stream
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Playback stopped."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
-	} else {
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Nothing is playing."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
+// StopCommand stops the current audio playback
+func StopCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	guildID := m.GuildID
+
+	pipelineMutex.RLock()
+	pipeline, exists := activePipelines[guildID]
+	pipelineMutex.RUnlock()
+
+	if !exists || !pipeline.IsPlaying() {
+		s.ChannelMessageSend(m.ChannelID, "No audio is currently playing.")
+		return
 	}
+
+	pipeline.Stop()
+	s.ChannelMessageSend(m.ChannelID, "Stopped playback.")
+
+	// Find and disconnect from voice channel
+	common.DisconnectFromVoiceChannel(s, guildID)
 }
