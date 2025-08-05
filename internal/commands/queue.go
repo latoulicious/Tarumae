@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/latoulicious/Tarumae/internal/presence"
 	"github.com/latoulicious/Tarumae/pkg/common"
 )
 
@@ -14,7 +15,15 @@ var (
 	// Global queue manager to track queues per guild
 	queues     = make(map[string]*common.MusicQueue)
 	queueMutex sync.RWMutex
+
+	// Global presence manager
+	presenceManager *presence.PresenceManager
 )
+
+// SetPresenceManager sets the global presence manager
+func SetPresenceManager(pm *presence.PresenceManager) {
+	presenceManager = pm
+}
 
 // QueueCommand handles the queue command
 func QueueCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
@@ -56,8 +65,88 @@ func sendEmbedMessage(s *discordgo.Session, channelID, title, description string
 		Color:       color,
 		Timestamp:   time.Now().Format(time.RFC3339),
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Hokko Tarumae | Music Bot",
+			Text: "Hokko Tarumae",
 		},
+	}
+	s.ChannelMessageSendEmbed(channelID, embed)
+}
+
+// sendSongFinishedEmbed sends an embed when a song finishes playing
+func sendSongFinishedEmbed(s *discordgo.Session, channelID, songTitle, requestedBy string) {
+	embed := &discordgo.MessageEmbed{
+		Title:     "🎵 Song Finished",
+		Color:     0x00ff00, // Green
+		Timestamp: time.Now().Format(time.RFC3339),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Hokko Tarumae",
+		},
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:   "Finished Playing",
+				Value:  fmt.Sprintf("**%s**\nRequested by: %s", songTitle, requestedBy),
+				Inline: false,
+			},
+		},
+	}
+	s.ChannelMessageSendEmbed(channelID, embed)
+}
+
+// sendQueueEndedEmbed sends an embed when the queue ends
+func sendQueueEndedEmbed(s *discordgo.Session, channelID string) {
+	embed := &discordgo.MessageEmbed{
+		Title:     "📭 Queue Ended",
+		Color:     0x808080, // Gray
+		Timestamp: time.Now().Format(time.RFC3339),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Hokko Tarumae",
+		},
+		Description: "All songs in the queue have been played. Add more songs with `!play` or `!queue add`!",
+	}
+	s.ChannelMessageSendEmbed(channelID, embed)
+}
+
+// sendSongSkippedEmbed sends an embed when a song is skipped
+func sendSongSkippedEmbed(s *discordgo.Session, channelID, songTitle, requestedBy, skippedBy string) {
+	embed := &discordgo.MessageEmbed{
+		Title:     "⏭️ Song Skipped",
+		Color:     0xffa500, // Orange
+		Timestamp: time.Now().Format(time.RFC3339),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Hokko Tarumae",
+		},
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:   "Skipped Song",
+				Value:  fmt.Sprintf("**%s**\nRequested by: %s", songTitle, requestedBy),
+				Inline: false,
+			},
+			{
+				Name:   "Skipped By",
+				Value:  skippedBy,
+				Inline: false,
+			},
+		},
+	}
+	s.ChannelMessageSendEmbed(channelID, embed)
+}
+
+// sendBotStoppedEmbed sends an embed when the bot stops/disconnects
+func sendBotStoppedEmbed(s *discordgo.Session, channelID, stoppedBy string) {
+	embed := &discordgo.MessageEmbed{
+		Title:     "⏹️ Playback Stopped",
+		Color:     0xff0000, // Red
+		Timestamp: time.Now().Format(time.RFC3339),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Hokko Tarumae",
+		},
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:   "Stopped By",
+				Value:  stoppedBy,
+				Inline: false,
+			},
+		},
+		Description: "Music playback has been stopped. Use `!play` to start playing again!",
 	}
 	s.ChannelMessageSendEmbed(channelID, embed)
 }
@@ -196,6 +285,12 @@ func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *c
 	item := queue.Next()
 	if item == nil {
 		queue.SetPlaying(false)
+		// Clear presence when no more songs
+		if presenceManager != nil {
+			presenceManager.ClearMusicPresence()
+		}
+		// Send queue ended embed
+		sendQueueEndedEmbed(s, m.ChannelID)
 		return
 	}
 
@@ -215,6 +310,11 @@ func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *c
 	pipeline := common.NewAudioPipeline(vc)
 	queue.SetPipeline(pipeline)
 
+	// Update bot presence to show current song
+	if presenceManager != nil {
+		presenceManager.UpdateMusicPresence(item.Title)
+	}
+
 	// Send now playing message with embed
 	description := fmt.Sprintf("**%s**\nRequested by: %s", item.Title, item.RequestedBy)
 	sendEmbedMessage(s, m.ChannelID, "🎶 Now Playing", description, 0x00ff00)
@@ -225,6 +325,9 @@ func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *c
 		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Failed to start audio playback.", 0xff0000)
 		vc.Disconnect()
 		queue.SetPlaying(false)
+		if presenceManager != nil {
+			presenceManager.ClearMusicPresence()
+		}
 		return
 	}
 
@@ -234,6 +337,9 @@ func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *c
 		for pipeline.IsPlaying() {
 			time.Sleep(1 * time.Second)
 		}
+
+		// Send song finished embed
+		sendSongFinishedEmbed(s, m.ChannelID, item.Title, item.RequestedBy)
 
 		// Play next song in queue
 		startNextInQueue(s, m, queue)

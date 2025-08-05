@@ -8,8 +8,10 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
+	"github.com/latoulicious/Tarumae/internal/commands"
 	"github.com/latoulicious/Tarumae/internal/config"
 	"github.com/latoulicious/Tarumae/internal/handlers"
+	"github.com/latoulicious/Tarumae/internal/presence"
 )
 
 func main() {
@@ -31,6 +33,12 @@ func main() {
 		log.Fatalf("Failed to create Discord session: %v", err)
 	}
 
+	// Create presence manager
+	presenceManager := presence.NewPresenceManager(dg)
+
+	// Set the presence manager in the commands package
+	commands.SetPresenceManager(presenceManager)
+
 	// Register the message handler
 	dg.AddHandler(handlers.MessageHandler)
 
@@ -42,6 +50,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to open Discord session: %v", err)
 	}
+
+	// Set initial presence
+	presenceManager.UpdateDefaultPresence()
+
+	// Start periodic presence updates
+	presenceManager.StartPeriodicUpdates()
 
 	log.Println("Bot is running. Press CTRL-C to exit.")
 	// Wait here until CTRL-C or other term signal is received.

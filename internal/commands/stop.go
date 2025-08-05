@@ -12,7 +12,7 @@ func StopCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 	// Get queue for this guild
 	queue := getQueue(guildID)
 	if queue == nil || !queue.IsPlaying() {
-		s.ChannelMessageSend(m.ChannelID, "No audio is currently playing.")
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "No audio is currently playing.", 0xff0000)
 		return
 	}
 
@@ -25,7 +25,13 @@ func StopCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 	queue.Clear()
 	queue.SetPlaying(false)
 
-	s.ChannelMessageSend(m.ChannelID, "⏹️ Stopped playback and cleared queue.")
+	// Clear presence
+	if presenceManager != nil {
+		presenceManager.ClearMusicPresence()
+	}
+
+	// Send stop embed
+	sendBotStoppedEmbed(s, m.ChannelID, m.Author.Username)
 
 	// Find and disconnect from voice channel
 	common.DisconnectFromVoiceChannel(s, guildID)
