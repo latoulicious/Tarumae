@@ -37,6 +37,8 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		command := strings.TrimPrefix(args[0], "!")
 
 		switch command {
+		case "help":
+			commands.ShowHelpCommand(s, m)
 		case "play":
 			commands.PlayCommand(s, m, args[1:])
 		case "pause":
@@ -47,8 +49,18 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 			commands.SkipCommand(s, m)
 		case "stop":
 			commands.StopCommand(s, m, args[1:])
+		case "servers":
+			commands.ServersCommand(s, m)
+		case "leave":
+			commands.LeaveCommand(s, m, args[1:])
+		case "leavebyname":
+			commands.LeaveByNameCommand(s, m, args[1:])
+		case "confirm":
+			commands.ConfirmLeaveCommand(s, m, args[1:])
+		case "confirmbyname":
+			commands.ConfirmLeaveByNameCommand(s, m, args[1:])
 		default:
-			s.ChannelMessageSend(m.ChannelID, "Unknown command. Try !play, !pause, !resume, !skip, or !stop.")
+			s.ChannelMessageSend(m.ChannelID, "Unknown command. Try `!help` to see all available commands.")
 		}
 	}
 }
