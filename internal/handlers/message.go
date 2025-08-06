@@ -64,6 +64,8 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 			commands.AboutCommand(s, m)
 		case "nowplaying", "np":
 			commands.NowPlayingCommand(s, m)
+		case "gremlin":
+			commands.GremlinCommand(s, m)
 		default:
 			s.ChannelMessageSend(m.ChannelID, "Unknown command. Try `!help` to see all available commands.")
 		}

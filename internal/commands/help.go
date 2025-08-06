@@ -30,6 +30,11 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 				Inline: false,
 			},
 			{
+				Name:   "Fun Commands",
+				Value:  "• `!gremlin` - Send a random gremlin image",
+				Inline: false,
+			},
+			{
 				Name:   "Admin Commands (Bot Owner Only)",
 				Value:  "• `!leave <server_id>` - Leave a server by ID\n• `!leave` - Show list of servers (if no ID provided)",
 				Inline: false,
