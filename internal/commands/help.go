@@ -39,11 +39,18 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 				Inline: false,
 			},
 			{
-				Name: "ℹInformation Commands",
+				Name: "Information Commands",
 				Value: strings.Join([]string{
 					"• `!about` - Show bot info, uptime, and stats",
 					"• `!servers` - List servers the bot is connected to (bot owner only)",
 					"• `!help` / `!h` - Show this help message",
+				}, "\n"),
+				Inline: false,
+			},
+			{
+				Name: "Moderation Commands",
+				Value: strings.Join([]string{
+					"• `!delete <number>` - Delete the specified number of recent messages (requires Manage Messages permission)",
 				}, "\n"),
 				Inline: false,
 			},

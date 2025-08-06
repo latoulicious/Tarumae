@@ -72,6 +72,8 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 			commands.GremlinCommand(s, m)
 		case "uma":
 			commands.UmaCommand(s, m, args[1:])
+		case "delete":
+			commands.DeleteCommand(s, m, args[1:])
 		default:
 			s.ChannelMessageSend(m.ChannelID, "Unknown command. Try `!help` to see all available commands.")
 		}
