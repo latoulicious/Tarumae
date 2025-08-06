@@ -60,6 +60,8 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 			commands.LeaveCommand(s, m, args[1:])
 		case "queue":
 			commands.QueueCommand(s, m, args[1:])
+		case "about":
+			commands.AboutCommand(s, m)
 		default:
 			s.ChannelMessageSend(m.ChannelID, "Unknown command. Try `!help` to see all available commands.")
 		}

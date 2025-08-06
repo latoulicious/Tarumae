@@ -26,7 +26,7 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 			},
 			{
 				Name:   "Information Commands",
-				Value:  "• `!servers` - Show all servers the bot is joined to\n• `!help` - Show this help message",
+				Value:  "• `!servers` - Show all servers the bot is joined to\n• `!about` - Show bot information and statistics\n• `!help` - Show this help message",
 				Inline: false,
 			},
 			{
