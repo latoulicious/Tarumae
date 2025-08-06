@@ -78,10 +78,11 @@ type SupportCard struct {
 
 // SupportCardSearchResult represents the result of a support card search
 type SupportCardSearchResult struct {
-	Found       bool
-	SupportCard *SupportCard
-	Error       error
-	Query       string
+	Found        bool
+	SupportCard  *SupportCard
+	SupportCards []SupportCard // Multiple cards for the same character
+	Error        error
+	Query        string
 }
 
 // SupportCardListResult represents the result of fetching support card list

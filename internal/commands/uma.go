@@ -59,7 +59,7 @@ func CharacterCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []s
 			Color:       0xff0000, // Red color
 			Timestamp:   time.Now().Format(time.RFC3339),
 			Footer: &discordgo.MessageEmbedFooter{
-				Text: "Hokko Tarumae | Uma Musume Search",
+				Text: "Hokko Tarumae | Uma Musume Character Search",
 			},
 			Fields: []*discordgo.MessageEmbedField{
 				{
@@ -168,6 +168,11 @@ func SupportCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []str
 	// Create success embed
 	embed := createSupportCardEmbed(result.SupportCard)
 
+	// If there are multiple versions, add them to the embed
+	if len(result.SupportCards) > 1 {
+		embed = createMultiVersionSupportCardEmbed(result.SupportCards)
+	}
+
 	// Send the embed
 	_, err := s.ChannelMessageSendEmbed(m.ChannelID, embed)
 	if err != nil {
@@ -191,15 +196,6 @@ func createSupportCardEmbed(supportCard *uma.SupportCard) *discordgo.MessageEmbe
 		color = 0x7289DA // Default Discord blue
 	}
 
-	// Format start date
-	var startDateStr string
-	if supportCard.StartDate > 0 {
-		startDate := time.Unix(supportCard.StartDate, 0)
-		startDateStr = startDate.Format("January 2, 2006")
-	} else {
-		startDateStr = "Unknown"
-	}
-
 	// Create embed
 	embed := &discordgo.MessageEmbed{
 		Title:       supportCard.TitleEn,
@@ -207,7 +203,7 @@ func createSupportCardEmbed(supportCard *uma.SupportCard) *discordgo.MessageEmbe
 		Color:       color,
 		Timestamp:   time.Now().Format(time.RFC3339),
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Hokko Tarumae | Uma Musume Support Card",
+			Text: "Data from umapyoi.net",
 		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
@@ -218,11 +214,6 @@ func createSupportCardEmbed(supportCard *uma.SupportCard) *discordgo.MessageEmbe
 			{
 				Name:   "🎯 Type",
 				Value:  supportCard.Type,
-				Inline: true,
-			},
-			{
-				Name:   "📅 Start Date",
-				Value:  startDateStr,
 				Inline: true,
 			},
 			{
@@ -249,6 +240,89 @@ func createSupportCardEmbed(supportCard *uma.SupportCard) *discordgo.MessageEmbe
 			URL: supportCard.TypeIconURL,
 		}
 	}
+
+	return embed
+}
+
+// createMultiVersionSupportCardEmbed creates an embed showing all versions of a support card
+func createMultiVersionSupportCardEmbed(supportCards []uma.SupportCard) *discordgo.MessageEmbed {
+	// Use the highest rarity card for the main embed info
+	mainCard := supportCards[0]
+
+	// Determine embed color based on highest rarity
+	var color int
+	switch mainCard.RarityString {
+	case "SSR":
+		color = 0xFFD700 // Gold
+	case "SR":
+		color = 0xC0C0C0 // Silver
+	case "R":
+		color = 0xCD7F32 // Bronze
+	default:
+		color = 0x7289DA // Default Discord blue
+	}
+
+	// Create embed
+	embed := &discordgo.MessageEmbed{
+		Title:       mainCard.TitleEn,
+		Description: mainCard.Title,
+		Color:       color,
+		Timestamp:   time.Now().Format(time.RFC3339),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Data from umapyoi.net",
+		},
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:   "🎯 Type",
+				Value:  mainCard.Type,
+				Inline: true,
+			},
+			{
+				Name:   "👤 Character ID",
+				Value:  fmt.Sprintf("%d", mainCard.CharaID),
+				Inline: true,
+			},
+		},
+	}
+
+	// Add type icon if available
+	if mainCard.TypeIconURL != "" {
+		embed.Thumbnail = &discordgo.MessageEmbedThumbnail{
+			URL: mainCard.TypeIconURL,
+		}
+	}
+
+	// Add all versions as fields
+	var versionsText strings.Builder
+	for i, card := range supportCards {
+		rarityEmoji := "🎴"
+		switch card.RarityString {
+		case "SSR":
+			rarityEmoji = "⭐"
+		case "SR":
+			rarityEmoji = "✨"
+		case "R":
+			rarityEmoji = "🎴"
+		}
+
+		versionsText.WriteString(fmt.Sprintf("%s **%s**\n", rarityEmoji, card.RarityString))
+		versionsText.WriteString(fmt.Sprintf("• ID: %d\n", card.ID))
+		versionsText.WriteString(fmt.Sprintf("• Title: %s\n", card.TitleEn))
+		if card.Title != card.TitleEn {
+			versionsText.WriteString(fmt.Sprintf("• JP: %s\n", card.Title))
+		}
+		versionsText.WriteString(fmt.Sprintf("• Gametora: %s\n", card.Gametora))
+
+		if i < len(supportCards)-1 {
+			versionsText.WriteString("\n")
+		}
+	}
+
+	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+		Name:   fmt.Sprintf("📋 All Versions (%d)", len(supportCards)),
+		Value:  versionsText.String(),
+		Inline: false,
+	})
 
 	return embed
 }

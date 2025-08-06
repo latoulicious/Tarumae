@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -205,9 +206,9 @@ func (c *Client) SearchSupportCard(query string) *SupportCardSearchResult {
 		return result
 	}
 
-	// Find the best match
-	bestMatch := c.findBestSupportCardMatch(query, listResult.SupportCards)
-	if bestMatch == nil {
+	// Find all matches for the same character
+	matches := c.findAllSupportCardMatches(query, listResult.SupportCards)
+	if len(matches) == 0 {
 		result := &SupportCardSearchResult{
 			Found: false,
 			Query: query,
@@ -216,22 +217,36 @@ func (c *Client) SearchSupportCard(query string) *SupportCardSearchResult {
 		return result
 	}
 
-	// Get detailed information for the matched card
-	detailedResult := c.GetSupportCard(bestMatch.ID)
-	if !detailedResult.Found {
+	// Get detailed information for all matched cards
+	var detailedCards []SupportCard
+	for _, match := range matches {
+		detailedResult := c.GetSupportCard(match.ID)
+		if detailedResult.Found && detailedResult.SupportCard != nil {
+			detailedCards = append(detailedCards, *detailedResult.SupportCard)
+		}
+	}
+
+	if len(detailedCards) == 0 {
 		result := &SupportCardSearchResult{
 			Found: false,
-			Error: detailedResult.Error,
+			Error: fmt.Errorf("failed to fetch detailed information for any matched cards"),
 			Query: query,
 		}
 		c.setCache(cacheKey, result)
 		return result
 	}
+
+	// Sort by rarity (SSR > SR > R)
+	sort.Slice(detailedCards, func(i, j int) bool {
+		rarityOrder := map[string]int{"SSR": 3, "SR": 2, "R": 1}
+		return rarityOrder[detailedCards[i].RarityString] > rarityOrder[detailedCards[j].RarityString]
+	})
 
 	result := &SupportCardSearchResult{
-		Found:       true,
-		SupportCard: detailedResult.SupportCard,
-		Query:       query,
+		Found:        true,
+		SupportCard:  &detailedCards[0], // Keep the first one for backward compatibility
+		SupportCards: detailedCards,
+		Query:        query,
 	}
 
 	c.setCache(cacheKey, result)
@@ -340,53 +355,90 @@ func (c *Client) GetSupportCard(supportID int) *SupportCardSearchResult {
 	return result
 }
 
-// findBestSupportCardMatch finds the best support card match for the given query
-func (c *Client) findBestSupportCardMatch(query string, supportCards []SupportCard) *SupportCard {
+// findAllSupportCardMatches finds all support cards that match the query,
+// grouping by character ID to find all versions of the same character's support cards.
+func (c *Client) findAllSupportCardMatches(query string, supportCards []SupportCard) []SupportCard {
 	query = strings.ToLower(query)
+	var matches []SupportCard
+	var matchedCharIDs []int
 
-	// First, try exact match with English title
-	for _, card := range supportCards {
-		if strings.ToLower(card.TitleEn) == query {
-			return &card
-		}
-	}
-
-	// Then, try contains match with English title
-	for _, card := range supportCards {
-		if strings.Contains(strings.ToLower(card.TitleEn), query) {
-			return &card
-		}
-	}
-
-	// Try Japanese title
-	for _, card := range supportCards {
-		if strings.Contains(strings.ToLower(card.Title), query) {
-			return &card
-		}
-	}
-
-	// Try gametora identifier
-	for _, card := range supportCards {
-		if strings.Contains(strings.ToLower(card.Gametora), query) {
-			return &card
-		}
-	}
-
-	// Finally, try partial word match
-	queryWords := strings.Fields(query)
+	// First pass: find all cards that match the query
 	for _, card := range supportCards {
 		titleEn := strings.ToLower(card.TitleEn)
 		titleJp := strings.ToLower(card.Title)
 		gametora := strings.ToLower(card.Gametora)
 
-		for _, word := range queryWords {
-			if strings.Contains(titleEn, word) || strings.Contains(titleJp, word) || strings.Contains(gametora, word) {
-				return &card
+		// Check if any field contains the query
+		matched := false
+
+		// Direct match (highest priority)
+		if strings.Contains(titleEn, query) || strings.Contains(titleJp, query) || strings.Contains(gametora, query) {
+			matched = true
+		}
+
+		// Handle space-separated queries vs hyphen-separated gametora
+		if !matched && strings.Contains(query, " ") {
+			// Replace spaces with hyphens for gametora matching
+			queryWithHyphens := strings.ReplaceAll(query, " ", "-")
+			if strings.Contains(gametora, queryWithHyphens) {
+				matched = true
 			}
+
+			// Also try replacing hyphens with spaces in gametora
+			gametoraWithSpaces := strings.ReplaceAll(gametora, "-", " ")
+			if strings.Contains(gametoraWithSpaces, query) {
+				matched = true
+			}
+		}
+
+		// Word-by-word matching (only if no direct match found)
+		if !matched {
+			queryWords := strings.Fields(query)
+			// Only do word-by-word matching if we have multiple words
+			if len(queryWords) > 1 {
+				allWordsMatched := true
+				for _, word := range queryWords {
+					wordMatched := false
+					if strings.Contains(titleEn, word) || strings.Contains(titleJp, word) || strings.Contains(gametora, word) {
+						wordMatched = true
+					}
+					if !wordMatched {
+						allWordsMatched = false
+						break
+					}
+				}
+				if allWordsMatched {
+					matched = true
+				}
+			}
+		}
+
+		if matched {
+			matches = append(matches, card)
+			matchedCharIDs = append(matchedCharIDs, card.CharaID)
 		}
 	}
 
-	return nil
+	// If we found matches, also include all other cards for the same characters
+	if len(matches) > 0 {
+		// Create a set of matched character IDs
+		charIDSet := make(map[int]bool)
+		for _, id := range matchedCharIDs {
+			charIDSet[id] = true
+		}
+
+		// Find all cards for the same characters
+		var allCardsForCharacter []SupportCard
+		for _, card := range supportCards {
+			if charIDSet[card.CharaID] {
+				allCardsForCharacter = append(allCardsForCharacter, card)
+			}
+		}
+
+		return allCardsForCharacter
+	}
+
+	return matches
 }
 
 // getFromCache retrieves an item from cache
