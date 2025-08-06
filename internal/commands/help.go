@@ -49,7 +49,7 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 			},
 			{
 				Name:   "Fun Commands",
-				Value:  "• `!gremlin` - Post a random gremlin image",
+				Value:  "• `!gremlin` - Post a random gremlin image\n• `!lyrics <song>` - Search for anime song lyrics",
 				Inline: false,
 			},
 			{
@@ -64,6 +64,7 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 				Value: strings.Join([]string{
 					"• Join a voice channel **before** using music commands",
 					"• Only **YouTube links and searches** are currently supported",
+					"• For lyrics, try using **Japanese titles** for better results",
 				}, "\n"),
 				Inline: false,
 			},

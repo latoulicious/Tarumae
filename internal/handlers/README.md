@@ -6,6 +6,14 @@ This document explains how to use the new global slash command system for the Ta
 
 The bot now supports both traditional prefix commands (`!play`, `!queue`, etc.) and modern Discord slash commands. Slash commands provide a better user experience with autocomplete, parameter validation, and native Discord integration.
 
+### Key Features
+
+- **Global Registration**: Commands are registered globally, available in all servers
+- **Autocomplete Support**: Built-in autocomplete for command parameters
+- **Compatibility**: Slash commands work alongside existing prefix commands
+- **Error Handling**: Robust error handling and user feedback
+- **Permission System**: Maintains existing permission checks
+
 ## Available Slash Commands
 
 ### Music Commands
@@ -18,10 +26,16 @@ The bot now supports both traditional prefix commands (`!play`, `!queue`, etc.) 
 - `/stop` - Stop playback and clear the queue
 - `/pause` - Pause the current playback
 - `/resume` - Resume paused playback
+- `/nowplaying` - Show what's currently playing
 
 ### Information Commands
 - `/help` - Show help information
+- `/about` - Show bot information, uptime, and stats
 - `/servers` - Show server information (Bot Owner Only)
+
+### Fun Commands
+- `/lyrics <song>` - Search for anime song lyrics
+- `/gremlin` - Post a random gremlin image
 
 ## Managing Slash Commands
 
@@ -30,7 +44,7 @@ The bot now supports both traditional prefix commands (`!play`, `!queue`, etc.) 
 To register all slash commands globally:
 
 ```bash
-go run tools/slash-manager.go -action register
+go run debug/slash_manager.go -action register
 ```
 
 ### Deleting Commands
@@ -38,13 +52,19 @@ go run tools/slash-manager.go -action register
 To delete all slash commands:
 
 ```bash
-go run tools/slash-manager.go -action delete-all
+go run debug/slash_manager.go -action delete-all
 ```
 
 To delete a specific command:
 
 ```bash
-go run tools/slash-manager.go -action delete-specific -command play
+go run debug/slash_manager.go -action delete-specific -command play
+```
+
+To check currently registered commands:
+
+```bash
+go run debug/slash_manager.go -action check
 ```
 
 ## Implementation Details
@@ -54,16 +74,8 @@ go run tools/slash-manager.go -action delete-specific -command play
 1. **`internal/handlers/slash.go`** - Slash command interaction handler
 2. **`internal/commands/slash.go`** - Slash command registration and management
 3. **`cmd/main.go`** - Updated to handle slash command interactions
-4. **`tools/slash-manager.go`** - Command-line tool for managing slash commands
+4. **`debug/slash_manager.go`** - Command-line tool for managing slash commands
 5. **`Makefile`** - Build system with clean commands
-
-### Key Features
-
-- **Global Registration**: Commands are registered globally, available in all servers
-- **Autocomplete Support**: Built-in autocomplete for command parameters
-- **Compatibility**: Slash commands work alongside existing prefix commands
-- **Error Handling**: Robust error handling and user feedback
-- **Permission System**: Maintains existing permission checks
 
 ### Technical Implementation
 
@@ -105,13 +117,16 @@ If you previously had guild-specific slash commands, you can delete them using t
 
 ```bash
 # Register all slash commands
-go run tools/slash-manager.go -action register
+go run debug/slash_manager.go -action register
 
 # Delete all slash commands
-go run tools/slash-manager.go -action delete-all
+go run debug/slash_manager.go -action delete-all
 
 # Delete specific command
-go run tools/slash-manager.go -action delete-specific -command play
+go run debug/slash_manager.go -action delete-specific -command play
+
+# Check currently registered commands
+go run debug/slash_manager.go -action check
 ```
 
 The slash command system provides a modern, user-friendly interface while maintaining compatibility with the existing prefix command system. 

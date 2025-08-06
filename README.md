@@ -83,7 +83,7 @@ make run
 
 ## Commands
 
-Check the full list of available [commands](https://github.com/latoulicious/Tarumae/blob/main/SLASH_COMMANDS.md).
+Check the full list of available [commands](https://github.com/latoulicious/HKTM/blob/main/internal/handlers/README.md).
 
 
 ## Known Issues
