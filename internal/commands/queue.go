@@ -18,11 +18,104 @@ var (
 
 	// Global presence manager
 	presenceManager *presence.PresenceManager
+
+	// Idle tracking
+	lastActivityTime = make(map[string]time.Time)
+	idleMutex        sync.RWMutex
 )
 
 // SetPresenceManager sets the global presence manager
 func SetPresenceManager(pm *presence.PresenceManager) {
 	presenceManager = pm
+}
+
+// updateActivity updates the last activity time for a guild
+func updateActivity(guildID string) {
+	idleMutex.Lock()
+	lastActivityTime[guildID] = time.Now()
+	idleMutex.Unlock()
+}
+
+// sendIdleDisconnectEmbed sends an embed when the bot disconnects due to idle timeout
+func sendIdleDisconnectEmbed(s *discordgo.Session, channelID string) {
+	embed := &discordgo.MessageEmbed{
+		Title:     "⏰ Idle Timeout",
+		Color:     0xffa500, // Orange
+		Timestamp: time.Now().Format(time.RFC3339),
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: "Hokko Tarumae",
+		},
+		Description: "Bot has been idle for 5 minutes. Disconnected from voice channel to preserve resources.\nUse `!play` to start playing again!",
+	}
+	s.ChannelMessageSendEmbed(channelID, embed)
+}
+
+// startIdleMonitor starts monitoring for idle timeouts
+func startIdleMonitor(s *discordgo.Session) {
+	go func() {
+		ticker := time.NewTicker(30 * time.Second) // Check every 30 seconds
+		defer ticker.Stop()
+
+		for range ticker.C {
+			now := time.Now()
+			idleMutex.RLock()
+
+			for guildID, lastActivity := range lastActivityTime {
+				// Check if more than 5 minutes have passed since last activity
+				if now.Sub(lastActivity) > 5*time.Minute {
+					// Get queue for this guild
+					queue := getQueue(guildID)
+					if queue != nil && queue.IsPlaying() {
+						// Stop the queue
+						queue.SetPlaying(false)
+						if pipeline := queue.GetPipeline(); pipeline != nil {
+							pipeline.Stop()
+						}
+
+						// Clear presence
+						if presenceManager != nil {
+							presenceManager.ClearMusicPresence()
+						}
+
+						// Disconnect from voice
+						vc := queue.GetVoiceConnection()
+						if vc != nil {
+							vc.Disconnect()
+						}
+
+						// Find a text channel to send the embed
+						// We'll use the first available text channel
+						guild, err := s.Guild(guildID)
+						if err == nil && guild != nil {
+							channels, err := s.GuildChannels(guildID)
+							if err == nil {
+								for _, channel := range channels {
+									if channel.Type == discordgo.ChannelTypeGuildText {
+										sendIdleDisconnectEmbed(s, channel.ID)
+										break
+									}
+								}
+							}
+						}
+
+						// Remove from idle tracking
+						idleMutex.RUnlock()
+						idleMutex.Lock()
+						delete(lastActivityTime, guildID)
+						idleMutex.Unlock()
+						idleMutex.RLock()
+					}
+				}
+			}
+
+			idleMutex.RUnlock()
+		}
+	}()
+}
+
+// GetIdleMonitor returns the idle monitor function
+func GetIdleMonitor() func(*discordgo.Session) {
+	return startIdleMonitor
 }
 
 // QueueCommand handles the queue command
@@ -156,6 +249,9 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []string)
 	guildID := m.GuildID
 	url := args[0]
 
+	// Update activity
+	updateActivity(guildID)
+
 	// Get or create queue for this guild
 	queue := getOrCreateQueue(guildID)
 
@@ -183,6 +279,10 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []string)
 // removeFromQueue removes a song from the queue
 func removeFromQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	guildID := m.GuildID
+
+	// Update activity
+	updateActivity(guildID)
+
 	queue := getQueue(guildID)
 
 	if queue == nil {
@@ -213,6 +313,10 @@ func removeFromQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []st
 // clearQueue clears the entire queue
 func clearQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 	guildID := m.GuildID
+
+	// Update activity
+	updateActivity(guildID)
+
 	queue := getQueue(guildID)
 
 	if queue == nil {
@@ -227,6 +331,10 @@ func clearQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 // showQueue shows the current queue
 func showQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 	guildID := m.GuildID
+
+	// Update activity
+	updateActivity(guildID)
+
 	queue := getQueue(guildID)
 
 	if queue == nil || (queue.Size() == 0 && queue.Current() == nil) {
@@ -240,7 +348,7 @@ func showQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 		Color:     0x0099ff,
 		Timestamp: time.Now().Format(time.RFC3339),
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Hokko Tarumae | Music Bot",
+			Text: "Hokko Tarumae",
 		},
 	}
 

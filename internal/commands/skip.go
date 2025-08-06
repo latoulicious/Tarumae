@@ -7,6 +7,9 @@ import (
 func SkipCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	guildID := m.GuildID
 
+	// Update activity for idle monitoring
+	updateActivity(guildID)
+
 	// Get queue for this guild
 	queue := getQueue(guildID)
 	if queue == nil || !queue.IsPlaying() {

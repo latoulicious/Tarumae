@@ -1,24 +1,21 @@
 package commands
 
 import (
-	"fmt"
-
 	"github.com/bwmarrin/discordgo"
 )
 
 func PauseCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+	guildID := m.GuildID
+	
+	// Update activity for idle monitoring
+	updateActivity(guildID)
+	
 	if Ctrl != nil && !Ctrl.Paused {
 		Ctrl.Paused = true
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Playback paused."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
+		sendEmbedMessage(s, m.ChannelID, "⏸️ Playback Paused", "Music playback has been paused.", 0xffa500)
 	} else if Ctrl.Paused {
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Playback is already paused."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Playback is already paused.", 0xff0000)
 	} else {
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Nothing is playing."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Nothing is playing.", 0xff0000)
 	}
 }

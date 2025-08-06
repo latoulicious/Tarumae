@@ -27,6 +27,10 @@ func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 	}
 
 	guildID := m.GuildID
+
+	// Update activity for idle monitoring
+	updateActivity(guildID)
+
 	url := args[0]
 
 	// Get or create queue for this guild

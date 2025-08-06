@@ -1,24 +1,21 @@
 package commands
 
 import (
-	"fmt"
-
 	"github.com/bwmarrin/discordgo"
 )
 
 func ResumeCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+	guildID := m.GuildID
+	
+	// Update activity for idle monitoring
+	updateActivity(guildID)
+	
 	if Ctrl != nil && !Ctrl.Paused {
 		Ctrl.Paused = true
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Playback Resumed."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
+		sendEmbedMessage(s, m.ChannelID, "▶️ Playback Resumed", "Music playback has been resumed.", 0x00ff00)
 	} else if Ctrl.Paused {
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Playback is already resumed."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Playback is already resumed.", 0xff0000)
 	} else {
-		if _, err := s.ChannelMessageSend(m.ChannelID, "Nothing is playing."); err != nil {
-			fmt.Println("Error sending message:", err)
-		}
+		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Nothing is playing.", 0xff0000)
 	}
 }

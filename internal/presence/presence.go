@@ -53,7 +53,7 @@ func (pm *PresenceManager) UpdateDefaultPresence() {
 		Status: "online",
 		Activities: []*discordgo.Activity{
 			{
-				Name:  strconv.Itoa(totalChannels) + " channels",
+				Name:  "Over " + strconv.Itoa(totalChannels) + " channels",
 				Type:  discordgo.ActivityTypeWatching,
 				State: "in " + strconv.Itoa(len(guilds)) + " servers",
 			},
@@ -77,9 +77,8 @@ func (pm *PresenceManager) UpdateMusicPresence(songTitle string) {
 		Status: "online",
 		Activities: []*discordgo.Activity{
 			{
-				Name:  "to",
-				Type:  discordgo.ActivityTypeListening,
-				State: songTitle,
+				Name: songTitle,
+				Type: discordgo.ActivityTypeListening,
 			},
 		},
 	}

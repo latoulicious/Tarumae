@@ -57,6 +57,10 @@ func main() {
 	// Start periodic presence updates
 	presenceManager.StartPeriodicUpdates()
 
+	// Start idle monitor
+	idleMonitor := commands.GetIdleMonitor()
+	idleMonitor(dg)
+
 	log.Println("Bot is running. Press CTRL-C to exit.")
 	// Wait here until CTRL-C or other term signal is received.
 	sc := make(chan os.Signal, 1)

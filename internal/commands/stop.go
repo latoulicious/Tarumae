@@ -8,6 +8,9 @@ import (
 // StopCommand stops the current audio playback and clears queue
 func StopCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	guildID := m.GuildID
+	
+	// Update activity for idle monitoring
+	updateActivity(guildID)
 
 	// Get queue for this guild
 	queue := getQueue(guildID)
