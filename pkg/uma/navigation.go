@@ -131,46 +131,74 @@ func (nm *NavigationManager) CreateCharacterEmbed(character *Character, imagesRe
 
 // createCharacterEmbed creates an embed for character display with image navigation
 func (nm *NavigationManager) createCharacterEmbed(character *Character, imagesResult *CharacterImagesResult, imageIndex int) *discordgo.MessageEmbed {
+	// Build footer text
+	footerText := "Data from umapyoi.net"
+	if imagesResult.Found && len(imagesResult.Images) > 0 {
+		totalImages := 0
+		for _, category := range imagesResult.Images {
+			totalImages += len(category.Images)
+		}
+		if totalImages > 1 {
+			footerText = fmt.Sprintf("Data from umapyoi.net | Image %d of %d", imageIndex+1, totalImages)
+		}
+	}
+
 	embed := &discordgo.MessageEmbed{
 		Title:       "🏇 Character Found",
 		Description: fmt.Sprintf("**%s** (%s)", character.NameEn, character.NameJp),
 		Color:       0x00ff00, // Green color
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Data from umapyoi.net",
+			Text: footerText,
 		},
 		Fields: []*discordgo.MessageEmbedField{},
 	}
 
-	// Flatten all images from all categories for navigation
-	var allImages []CharacterImage
-	var allCategories []string
-	if imagesResult.Found {
+	// Add character metadata fields
+	if character.CategoryLabelEn != "" {
+		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+			Name:   "Category",
+			Value:  character.CategoryLabelEn,
+			Inline: true,
+		})
+	}
+
+	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+		Name:   "Character ID",
+		Value:  fmt.Sprintf("%d", character.ID),
+		Inline: true,
+	})
+
+	// Add character image if available
+	if imagesResult.Found && len(imagesResult.Images) > 0 {
+		// Flatten all images from all categories for navigation
+		var allImages []CharacterImage
+		var allCategories []string
 		for _, category := range imagesResult.Images {
 			for _, image := range category.Images {
 				allImages = append(allImages, image)
 				allCategories = append(allCategories, category.LabelEn)
 			}
 		}
-	}
 
-	// Add character image if available
-	if len(allImages) > 0 {
-		if imageIndex >= len(allImages) {
-			imageIndex = 0
-		}
-		image := allImages[imageIndex]
-		category := allCategories[imageIndex]
-		embed.Image = &discordgo.MessageEmbedImage{
-			URL: image.Image,
-		}
+		if len(allImages) > 0 {
+			if imageIndex >= len(allImages) {
+				imageIndex = 0
+			}
+			image := allImages[imageIndex]
+			category := allCategories[imageIndex]
 
-		// Add image navigation info
-		if len(allImages) > 1 {
-			embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-				Name:   "🖼️ Image Navigation",
-				Value:  fmt.Sprintf("Image %d of %d\nCategory: %s\nUploaded: %s", imageIndex+1, len(allImages), category, image.Uploaded),
-				Inline: false,
-			})
+			// Add image details
+			if len(allImages) > 1 {
+				embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+					Value:  fmt.Sprintf("**Type:** %s", category),
+					Inline: false,
+				})
+			}
+
+			// Add the image
+			embed.Image = &discordgo.MessageEmbedImage{
+				URL: image.Image,
+			}
 		}
 	} else if character.ThumbImg != "" {
 		// Fallback to thumbnail if no images available
@@ -178,29 +206,6 @@ func (nm *NavigationManager) createCharacterEmbed(character *Character, imagesRe
 			URL: character.ThumbImg,
 		}
 	}
-
-	// Add category field
-	if character.CategoryLabelEn != "" {
-		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:   "🏷️ Category",
-			Value:  character.CategoryLabelEn,
-			Inline: true,
-		})
-	}
-
-	// Add character ID field
-	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-		Name:   "🆔 Character ID",
-		Value:  fmt.Sprintf("%d", character.ID),
-		Inline: true,
-	})
-
-	// Add row number field
-	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-		Name:   "📊 Row Number",
-		Value:  fmt.Sprintf("%d", character.RowNumber),
-		Inline: true,
-	})
 
 	return embed
 }
