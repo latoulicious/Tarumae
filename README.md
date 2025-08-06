@@ -1,6 +1,6 @@
 # HKTM
 
-High-performance Discord music bot written in Go, designed to stream audio directly from YouTube using a tightly controlled `yt-dlp → FFmpeg → gopus` pipeline.
+High-performance Discord music bot written in Go, designed to stream audio directly from YouTube using a tightly controlled pipeline.
 ---
 
 ![HKTM Screenshot](https://cdn.discordapp.com/attachments/1119291447926075412/1402487517567127683/image.png?ex=689417c9&is=6892c649&hm=5b6a2888791c0ffd2ba614f509c310cefdd2186ef6e95abc3393d3392e166d7c&)
@@ -24,6 +24,7 @@ High-performance Discord music bot written in Go, designed to stream audio direc
 The audio streaming flow is purpose-built for performance and clarity:
 
 ```mermaid
+graph LR
   A[yt-dlp] --> B[FFmpeg (PCM)]
   B ----------> C[gopus (Opus Encoder)]
   C ----------> D[Discord Voice Channel]
