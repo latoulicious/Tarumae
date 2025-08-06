@@ -1,4 +1,4 @@
-module github.com/latoulicious/Tarumae
+module github.com/latoulicious/HKTM
 
 go 1.23.6
 

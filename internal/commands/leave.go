@@ -21,9 +21,9 @@ func LeaveCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []strin
 		return
 	}
 
-	// If no arguments provided, show server list
+	// Require a server ID argument
 	if len(args) < 1 {
-		ServersCommand(s, m)
+		s.ChannelMessageSend(m.ChannelID, "❌ Please provide a server ID. Usage: `!leave <server_id>`\n💡 Use `!servers` to see available server IDs.")
 		return
 	}
 

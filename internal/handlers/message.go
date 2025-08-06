@@ -42,9 +42,9 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		command := strings.TrimPrefix(args[0], "!")
 
 		switch command {
-		case "help":
+		case "help", "h":
 			commands.ShowHelpCommand(s, m)
-		case "play":
+		case "play", "p":
 			commands.PlayCommand(s, m, args[1:])
 		case "pause":
 			commands.PauseCommand(s, m)
@@ -58,7 +58,7 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 			commands.ServersCommand(s, m)
 		case "leave":
 			commands.LeaveCommand(s, m, args[1:])
-		case "queue":
+		case "queue", "q":
 			commands.QueueCommand(s, m, args[1:])
 		case "about":
 			commands.AboutCommand(s, m)

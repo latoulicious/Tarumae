@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -20,28 +21,49 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
-				Name:   "Music Commands",
-				Value:  "• `!play <youtube_url>` - Add song to queue and play\n• `!nowplaying` / `!np` - Show what's currently playing\n• `!queue add <youtube_url>` - Add song to queue\n• `!queue list` - Show current queue\n• `!queue remove <index>` - Remove song from queue\n• `!queue clear` - Clear entire queue\n• `!pause` - Pause the current playback\n• `!resume` - Resume paused playback\n• `!skip` - Skip the current track\n• `!stop` - Stop playback and disconnect from voice channel",
+				Name: "Music Commands",
+				Value: strings.Join([]string{
+					"• `!play <url>` / `!p <url>` - Play a YouTube video by URL",
+					"• `!p search <keywords>` - Search and play a YouTube video",
+					"• `!nowplaying` / `!np` - Show the currently playing track",
+					"• `!queue add <url>` - Add a YouTube video to the queue",
+					"• `!queue list` - List the current queue",
+					"• `!queue remove <index>` - Remove a track from the queue",
+					"• `!queue clear` - Clear the entire queue",
+					"• `!pause` - Pause the current playback",
+					"• `!resume` - Resume paused playback",
+					"• `!skip` - Skip the currently playing track",
+					"• `!stop` - Stop playback and disconnect from voice channel",
+				}, "\n"),
 				Inline: false,
 			},
 			{
-				Name:   "Information Commands",
-				Value:  "• `!servers` - Show all servers the bot is joined to\n• `!about` - Show bot information and statistics\n• `!help` - Show this help message",
+				Name: "ℹInformation Commands",
+				Value: strings.Join([]string{
+					"• `!about` - Show bot info, uptime, and stats",
+					"• `!servers` - List servers the bot is connected to (bot owner only)",
+					"• `!help` / `!h` - Show this help message",
+				}, "\n"),
 				Inline: false,
 			},
 			{
 				Name:   "Fun Commands",
-				Value:  "• `!gremlin` - Send a random gremlin image",
+				Value:  "• `!gremlin` - Post a random gremlin image",
 				Inline: false,
 			},
 			{
-				Name:   "Admin Commands (Bot Owner Only)",
-				Value:  "• `!leave <server_id>` - Leave a server by ID\n• `!leave` - Show list of servers (if no ID provided)",
+				Name: "Admin Commands (Bot Owner Only)",
+				Value: strings.Join([]string{
+					"• `!leave <server_id>` - Force bot to leave a server by ID",
+				}, "\n"),
 				Inline: false,
 			},
 			{
-				Name:   "Tips",
-				Value:  "• Make sure you're in a voice channel before using music commands\n• Use `!servers` or `!leave` to get server IDs\n• Only the bot owner can use admin commands",
+				Name: "💡 Tips",
+				Value: strings.Join([]string{
+					"• Join a voice channel **before** using music commands",
+					"• Only **YouTube links and searches** are currently supported",
+				}, "\n"),
 				Inline: false,
 			},
 		},
