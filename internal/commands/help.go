@@ -29,7 +29,7 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 					"• `!queue add <url>` - Add a YouTube video to the queue",
 					"• `!queue list` - List the current queue",
 					"• `!queue remove <index>` - Remove a track from the queue",
-					"• `!queue clear` - Clear the entire queue",
+					"• `!clear` - Clear the entire queue (confirmation for non-admins)",
 					"• `!pause` - Pause the current playback",
 					"• `!resume` - Resume paused playback",
 					"• `!skip` - Skip the currently playing track",
