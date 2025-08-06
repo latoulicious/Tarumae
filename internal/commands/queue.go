@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/latoulicious/Tarumae/internal/presence"
-	"github.com/latoulicious/Tarumae/pkg/common"
+	"github.com/latoulicious/HKTM/internal/presence"
+	"github.com/latoulicious/HKTM/pkg/common"
 )
 
 var (

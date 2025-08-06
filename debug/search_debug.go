@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/latoulicious/Tarumae/pkg/common"
+	"github.com/latoulicious/HKTM/pkg/common"
 )
 
 // TestSearchFunctionality tests the YouTube search functionality

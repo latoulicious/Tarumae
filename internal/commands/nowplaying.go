@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/latoulicious/Tarumae/pkg/common"
+	"github.com/latoulicious/HKTM/pkg/common"
 )
 
 // NowPlayingCommand handles the nowplaying command

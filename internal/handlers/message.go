@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/latoulicious/Tarumae/internal/commands"
+	"github.com/latoulicious/HKTM/internal/commands"
 )
 
 func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {

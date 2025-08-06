@@ -8,7 +8,6 @@ High-performance Discord music bot written in Go, designed to stream audio direc
 > ⚠️ **Work in Progress**  
 > This project is developed for personal use in a private Discord server. While the code is open-source for educational purposes, it is **not** production-ready and may lack general support or stability guarantees.
 
----
 
 ## Features
 
@@ -17,7 +16,6 @@ High-performance Discord music bot written in Go, designed to stream audio direc
 - **Stream-First Design** — Built for low-latency, stable audio playback
 - **Battle-Tested Tools** — Leverages mature tools (FFmpeg, yt-dlp) instead of wrappers
 
----
 
 ## Architecture
 
@@ -37,7 +35,6 @@ graph LR
 3. **gopus** – Encodes PCM to Opus (optimized for Discord).
 4. **Discord** – Streams Opus frames to voice channels via Discord Gateway.
 
----
 
 ## Why This Approach?
 
@@ -48,7 +45,7 @@ graph LR
 
 ---
 
-## 🛠 Requirements
+## Requirements
 
 Make sure the following are installed and available in your `PATH`:
 
@@ -57,30 +54,37 @@ Make sure the following are installed and available in your `PATH`:
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 - [Discord Bot Token](https://discord.com/developers/applications)
 
----
 
-## 🚀 Getting Started
+## Getting Started
 
+1. Clone the repository
 ```bash
 git clone https://github.com/latoulicious/Tarumae.git
+```
+2. Navigate to the repository
+```bash
 cd Tarumae
+```
+3. Install the dependencies
+```bash
 go mod tidy
 ```
-
-1. Configure your Discord bot token (via `.env` or code).
-2. Run the bot:
+3. Configure your Discord bot token (via `.env`).
+4. Run the bot:
 
 ```bash
-go run cmd/main.go
-```
+go run cmd/main.go 
 
----
+# or using makefile 
+
+make run
+```
+> See the [Makefile](https://github.com/latoulicious/Tarumae/blob/main/Makefile) for more available commands.
 
 ## Commands
 
-Check the full list of available commands in the [`SLASH_COMMANDS.md`](https://github.com/latoulicious/Tarumae/blob/main/SLASH_COMMANDS.md).
+Check the full list of available [commands](https://github.com/latoulicious/Tarumae/blob/main/SLASH_COMMANDS.md).
 
----
 
 ## Known Issues
 

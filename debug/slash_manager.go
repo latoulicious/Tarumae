@@ -7,8 +7,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
-	"github.com/latoulicious/Tarumae/internal/commands"
-	"github.com/latoulicious/Tarumae/internal/config"
+	"github.com/latoulicious/HKTM/internal/commands"
+	"github.com/latoulicious/HKTM/internal/config"
 )
 
 func SlashManager() {

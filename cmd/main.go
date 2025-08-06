@@ -8,10 +8,10 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
-	"github.com/latoulicious/Tarumae/internal/commands"
-	"github.com/latoulicious/Tarumae/internal/config"
-	"github.com/latoulicious/Tarumae/internal/handlers"
-	"github.com/latoulicious/Tarumae/internal/presence"
+	"github.com/latoulicious/HKTM/internal/commands"
+	"github.com/latoulicious/HKTM/internal/config"
+	"github.com/latoulicious/HKTM/internal/handlers"
+	"github.com/latoulicious/HKTM/internal/presence"
 )
 
 func main() {
