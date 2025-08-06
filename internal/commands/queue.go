@@ -255,15 +255,25 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []string)
 	// Get or create queue for this guild
 	queue := getOrCreateQueue(guildID)
 
-	// Validate and get stream URL
-	streamURL, title, err := getYouTubeAudioStreamWithMetadata(url)
+	// Validate and get stream URL with metadata
+	streamURL, title, duration, err := common.GetYouTubeAudioStreamWithMetadata(url)
 	if err != nil {
 		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Failed to get audio stream. Please check the URL.", 0xff0000)
 		return
 	}
 
-	// Add to queue
-	queue.Add(streamURL, title, m.Author.Username)
+	// Check if it's a YouTube URL and extract video ID
+	var videoID string
+	var originalURL string
+	if common.IsYouTubeURL(url) {
+		videoID = common.ExtractYouTubeVideoID(url)
+		originalURL = url
+		// Use the new method for YouTube videos
+		queue.AddWithYouTubeData(streamURL, originalURL, videoID, title, m.Author.Username, duration)
+	} else {
+		// Use the original method for non-YouTube URLs
+		queue.Add(streamURL, title, m.Author.Username)
+	}
 
 	// Send confirmation with embed
 	queueSize := queue.Size()
@@ -358,7 +368,7 @@ func showQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if current := queue.Current(); current != nil {
 		fields = append(fields, &discordgo.MessageEmbedField{
 			Name:   "🎶 Now Playing",
-			Value:  fmt.Sprintf("**%s**\nRequested by: %s", current.Title, current.RequestedBy),
+			Value:  fmt.Sprintf(current.Title),
 			Inline: false,
 		})
 	}
@@ -424,7 +434,7 @@ func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *c
 	}
 
 	// Send now playing message with embed
-	description := fmt.Sprintf("**%s**\nRequested by: %s", item.Title, item.RequestedBy)
+	description := fmt.Sprintf(item.Title)
 	sendEmbedMessage(s, m.ChannelID, "🎶 Now Playing", description, 0x00ff00)
 
 	// Start streaming

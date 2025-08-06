@@ -1,12 +1,8 @@
 package commands
 
 import (
-	"bytes"
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
-	"strings"
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
@@ -36,16 +32,26 @@ func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 	// Get or create queue for this guild
 	queue := getOrCreateQueue(guildID)
 
-	// Validate and get stream URL
-	streamURL, title, err := getYouTubeAudioStreamWithMetadata(url)
+	// Validate and get stream URL with metadata
+	streamURL, title, duration, err := common.GetYouTubeAudioStreamWithMetadata(url)
 	if err != nil {
 		log.Printf("Error fetching stream URL: %v", err)
 		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Failed to get audio stream. Please check the URL.", 0xff0000)
 		return
 	}
 
-	// Add to queue
-	queue.Add(streamURL, title, m.Author.Username)
+	// Check if it's a YouTube URL and extract video ID
+	var videoID string
+	var originalURL string
+	if common.IsYouTubeURL(url) {
+		videoID = common.ExtractYouTubeVideoID(url)
+		originalURL = url
+		// Use the new method for YouTube videos
+		queue.AddWithYouTubeData(streamURL, originalURL, videoID, title, m.Author.Username, duration)
+	} else {
+		// Use the original method for non-YouTube URLs
+		queue.Add(streamURL, title, m.Author.Username)
+	}
 
 	// Send confirmation with embed
 	queueSize := queue.Size()
@@ -56,74 +62,6 @@ func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 	if !queue.IsPlaying() {
 		startNextInQueue(s, m, queue)
 	}
-}
-
-// getYouTubeAudioStreamWithMetadata extracts both stream URL and metadata
-func getYouTubeAudioStreamWithMetadata(url string) (streamURL, title string, err error) {
-	log.Printf("Extracting audio stream from: %s", url)
-
-	// First, get metadata
-	metadataCmd := exec.Command("yt-dlp",
-		"--no-playlist",
-		"--no-warnings",
-		"--print", "title",
-		url)
-
-	var titleOut bytes.Buffer
-	metadataCmd.Stdout = &titleOut
-	metadataCmd.Stderr = os.Stderr
-
-	if err := metadataCmd.Run(); err != nil {
-		log.Printf("Failed to get metadata: %v", err)
-		title = "Unknown Title"
-	} else {
-		title = strings.TrimSpace(titleOut.String())
-	}
-
-	// Then get stream URL with multiple fallback strategies
-	strategies := [][]string{
-		// Strategy 1: Best audio with format preference
-		{"-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio[ext=mp4]/bestaudio"},
-
-		// Strategy 2: Android client (often bypasses restrictions)
-		{"-f", "bestaudio", "--extractor-args", "youtube:player_client=android"},
-
-		// Strategy 3: Web client with cookies
-		{"-f", "bestaudio", "--extractor-args", "youtube:player_client=web"},
-
-		// Strategy 4: Last resort - any audio
-		{"-f", "worst[ext=m4a]/worst"},
-	}
-
-	for i, strategy := range strategies {
-		log.Printf("Trying extraction strategy %d/%d", i+1, len(strategies))
-
-		args := append([]string{"--no-playlist", "--no-warnings", "-g"}, strategy...)
-		args = append(args, url)
-
-		cmd := exec.Command("yt-dlp", args...)
-		var out bytes.Buffer
-		cmd.Stdout = &out
-		cmd.Stderr = os.Stderr
-
-		if err := cmd.Run(); err != nil {
-			log.Printf("Strategy %d failed: %v", i+1, err)
-			continue
-		}
-
-		streamURL = strings.TrimSpace(out.String())
-		if streamURL != "" {
-			// Take first URL if multiple are returned
-			urls := strings.Split(streamURL, "\n")
-			if len(urls) > 0 && urls[0] != "" {
-				streamURL = urls[0]
-				log.Printf("Successfully extracted stream URL using strategy %d", i+1)
-				return streamURL, title, nil
-			}
-		}
-	}
-
-	return "", title, fmt.Errorf("failed to extract audio stream URL after trying all strategies")
 }
 
 // StatusCommand shows the current playback status

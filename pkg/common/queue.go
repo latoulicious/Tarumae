@@ -11,10 +11,14 @@ import (
 
 // QueueItem represents a single item in the music queue
 type QueueItem struct {
-	URL         string
+	URL         string // Stream URL
+	OriginalURL string // Original YouTube URL (if applicable)
+	VideoID     string // YouTube video ID (if applicable)
 	Title       string
 	RequestedBy string
 	AddedAt     time.Time
+	StartedAt   time.Time
+	Duration    time.Duration
 }
 
 // MusicQueue manages the queue for a specific guild
@@ -50,6 +54,25 @@ func (mq *MusicQueue) Add(url, title, requestedBy string) {
 
 	mq.items = append(mq.items, item)
 	log.Printf("Added '%s' to queue for guild %s", title, mq.guildID)
+}
+
+// AddWithYouTubeData adds a new item to the queue with YouTube-specific data
+func (mq *MusicQueue) AddWithYouTubeData(url, originalURL, videoID, title, requestedBy string, duration time.Duration) {
+	mq.mu.Lock()
+	defer mq.mu.Unlock()
+
+	item := &QueueItem{
+		URL:         url,
+		OriginalURL: originalURL,
+		VideoID:     videoID,
+		Title:       title,
+		RequestedBy: requestedBy,
+		AddedAt:     time.Now(),
+		Duration:    duration,
+	}
+
+	mq.items = append(mq.items, item)
+	log.Printf("Added '%s' (Duration: %v) to queue for guild %s", title, duration, mq.guildID)
 }
 
 // Next gets the next item from the queue

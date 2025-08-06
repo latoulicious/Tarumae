@@ -57,6 +57,8 @@ func handleApplicationCommand(s *discordgo.Session, i *discordgo.InteractionCrea
 		response = handleServersSlash(s, i)
 	case "help":
 		response = handleHelpSlash(s, i)
+	case "nowplaying":
+		response = handleNowPlayingSlash(s, i)
 	default:
 		response = "❌ Unknown command."
 	}
@@ -231,6 +233,19 @@ func handleHelpSlash(s *discordgo.Session, i *discordgo.InteractionCreate) strin
 
 	commands.ShowHelpCommand(s, mockMessage)
 	return "📖 Help information displayed!"
+}
+
+func handleNowPlayingSlash(s *discordgo.Session, i *discordgo.InteractionCreate) string {
+	mockMessage := &discordgo.MessageCreate{
+		Message: &discordgo.Message{
+			GuildID:   i.GuildID,
+			ChannelID: i.ChannelID,
+			Author:    i.Member.User,
+		},
+	}
+
+	commands.NowPlayingCommand(s, mockMessage)
+	return "🎵 Now playing information displayed!"
 }
 
 // Autocomplete handlers

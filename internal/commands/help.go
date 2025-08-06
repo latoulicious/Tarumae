@@ -21,7 +21,7 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "Music Commands",
-				Value:  "• `!play <youtube_url>` - Add song to queue and play\n• `!queue add <youtube_url>` - Add song to queue\n• `!queue list` - Show current queue\n• `!queue remove <index>` - Remove song from queue\n• `!queue clear` - Clear entire queue\n• `!pause` - Pause the current playback\n• `!resume` - Resume paused playback\n• `!skip` - Skip the current track\n• `!stop` - Stop playback and disconnect from voice channel",
+				Value:  "• `!play <youtube_url>` - Add song to queue and play\n• `!nowplaying` / `!np` - Show what's currently playing\n• `!queue add <youtube_url>` - Add song to queue\n• `!queue list` - Show current queue\n• `!queue remove <index>` - Remove song from queue\n• `!queue clear` - Clear entire queue\n• `!pause` - Pause the current playback\n• `!resume` - Resume paused playback\n• `!skip` - Skip the current track\n• `!stop` - Stop playback and disconnect from voice channel",
 				Inline: false,
 			},
 			{
