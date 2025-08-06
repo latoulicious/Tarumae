@@ -1,50 +1,105 @@
-# Uma Musume Integration Package
+# Uma Musume API Client
 
-This package provides integration with the umapyoi.net API to fetch Uma Musume character information.
+This Go package provides a convenient client for interacting with the [umapyoi.net](https://umapyoi.net) API to fetch Uma Musume character and support card data.
 
 ## Features
 
-- **Character Search**: Search for characters by name with partial matching
+- **Character Search**: Search characters by English or Japanese name (with partial matching)
+- **Support Card Search**: Search support cards by English/Japanese title or Gametora ID
+- **Character Images**: Fetch and paginate through character images
 - **Caching**: In-memory LRU cache with 5-minute TTL to reduce API calls
-- **Error Handling**: Graceful handling of API errors and missing data
-- **Rate Limiting**: Respectful API usage with built-in timeouts
+- **Error Handling**: Graceful handling of timeouts, API errors, and invalid input
+- **Discord Bot Integration**: Ready-to-use with Discord bot commands
+
 
 ## Usage
 
-### Basic Character Search
+### Character Search
 
 ```go
 client := uma.NewClient()
 result := client.SearchCharacter("Oguri Cap")
 
 if result.Found {
-    fmt.Printf("Found: %s (Rarity: %s)\n", result.Character.Name, result.Character.Rarity)
+    fmt.Printf("Found: %s (Rarity: %s)\n", result.Character.NameEn, result.Character.Rarity)
 } else {
     fmt.Printf("Character not found: %s\n", result.Query)
 }
 ```
 
-### Command Integration
+### Support Card Search
 
-The package is integrated into the Discord bot with the command:
+```go
+client := uma.NewClient()
+result := client.SearchSupportCard("daring tact")
+
+if result.Found {
+    fmt.Printf("Found support card: %s\n", result.SupportCard.TitleEn)
+    fmt.Printf("Rarity: %s\n", result.SupportCard.RarityString)
+    fmt.Printf("Type: %s\n", result.SupportCard.Type)
+} else {
+    fmt.Printf("Support card not found: %s\n", result.Query)
+}
+```
+
+
+## Discord Command Integration
+
+### Character Lookup
 
 ```
 !uma char <character name>
 ```
 
 Examples:
+
 - `!uma char Oguri Cap`
-- `!uma char oguri`
 - `!uma char Special Week`
 
-## API Endpoints
+### Support Card Lookup
 
-- **Base URL**: `https://umapyoi.net/api`
-- **Characters**: `GET /v1/character/list`
+```
+!uma support <support card name>
+```
+
+Examples:
+
+- `!uma support daring tact`
+- `!uma support 10001-special-week`
+
+
+## API Endpoints Used
+
+| Endpoint                            | Description                           |
+| ----------------------------------- | ------------------------------------- |
+| `GET /api/v1/character/list`        | List all characters                   |
+| `GET /api/v1/character/images/{id}` | Retrieve images for a character       |
+| `GET /api/v1/support`               | List all support cards                |
+| `GET /api/v1/support/{id}`          | Get detailed support card information |
+
+
+## Caching
+
+- **Mechanism**: In-memory LRU cache
+- **TTL**: 5 minutes
+- **Thread-safe**: Uses `sync.RWMutex` for concurrency
+- **Key Format**: `char_search_<query>` or `support_search_<query>`
+
+
+## Error Handling
+
+The client handles:
+
+- **Network Timeouts**: Defaults to a 10-second timeout
+- **Invalid API Responses**: Non-200 status codes
+- **Invalid JSON**: Parsing errors
+- **Empty Results**: User-friendly error messages for unknown input
+
 
 ## Data Structures
 
-### Character
+### `Character`
+
 ```go
 type Character struct {
     ID              int    `json:"id"`
@@ -62,7 +117,8 @@ type Character struct {
 }
 ```
 
-### CharacterSearchResult
+### `CharacterSearchResult`
+
 ```go
 type CharacterSearchResult struct {
     Found     bool
@@ -72,24 +128,16 @@ type CharacterSearchResult struct {
 }
 ```
 
-## Caching
 
-The client implements an in-memory cache with:
-- **TTL**: 5 minutes
-- **Key Format**: `char_search_<lowercase_query>`
-- **Thread-safe**: Uses RWMutex for concurrent access
+## Roadmap / Future Enhancements
 
-## Error Handling
-
-The package handles various error scenarios:
-- Network timeouts (10-second timeout)
-- API errors (non-200 status codes)
-- JSON parsing errors
-- Missing or empty data
-
-## Future Enhancements
-
-- Support for support cards
-- Event information
+- Detailed support card embed rendering (image, skill, stat bonuses)
+- Event data support
 - News integration
-- Global vs JP content filtering 
+- Global vs JP content toggle
+
+
+## Disclaimer
+
+This is a personal project intended for educational or non-commercial purposes. Not affiliated with Cygames, Umamusume, or umapyoi.net. Use responsibly and respect upstream API rate limits.
+
