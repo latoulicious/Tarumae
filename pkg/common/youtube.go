@@ -171,3 +171,67 @@ func GetYouTubeAudioStreamWithMetadata(urlStr string) (streamURL, title string, 
 
 	return "", title, duration, fmt.Errorf("failed to extract audio stream URL after trying all strategies")
 }
+
+// SearchYouTubeAndGetURL searches for a query on YouTube and returns the first result's URL
+func SearchYouTubeAndGetURL(query string) (url string, title string, duration time.Duration, err error) {
+	log.Printf("Searching YouTube for: %s", query)
+
+	// Use yt-dlp to search for videos
+	cmd := exec.Command("yt-dlp",
+		"--no-playlist",
+		"--no-warnings",
+		"--print", "webpage_url",
+		"--print", "title",
+		"--print", "duration",
+		"--max-downloads", "1", // Only get the first result
+		"ytsearch1:"+query) // Search for 1 result
+
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	runErr := cmd.Run()
+	output := strings.TrimSpace(out.String())
+
+	// Parse the output regardless of exit status
+	lines := strings.Split(output, "\n")
+
+	if len(lines) >= 1 {
+		url = strings.TrimSpace(lines[0])
+	}
+	if len(lines) >= 2 {
+		title = strings.TrimSpace(lines[1])
+	}
+	if len(lines) >= 3 {
+		durationStr := strings.TrimSpace(lines[2])
+		if durationStr != "" && durationStr != "None" {
+			// yt-dlp returns duration in seconds
+			if seconds, parseErr := strconv.ParseFloat(durationStr, 64); parseErr == nil {
+				duration = time.Duration(seconds * float64(time.Second))
+			}
+		}
+	}
+
+	// Only return an error if we got no output AND there was an error
+	if url == "" {
+		if runErr != nil {
+			log.Printf("Failed to search YouTube: %v, stderr: %s", runErr, stderr.String())
+			return "", "", 0, fmt.Errorf("failed to search YouTube: %v", runErr)
+		}
+		return "", "", 0, fmt.Errorf("no search results found")
+	}
+
+	if title == "" {
+		title = "Unknown Title"
+	}
+
+	log.Printf("Search result - URL: %s, Title: %s, Duration: %v", url, title, duration)
+	return url, title, duration, nil
+}
+
+// IsURL checks if a string appears to be a URL
+func IsURL(str string) bool {
+	return strings.HasPrefix(str, "http://") || strings.HasPrefix(str, "https://") ||
+		strings.HasPrefix(str, "www.") || IsYouTubeURL(str)
+}
