@@ -24,8 +24,8 @@ The audio streaming flow is purpose-built for performance and clarity:
 ```mermaid
 graph LR
   A[yt-dlp] --> B[FFmpeg (PCM)]
-  B ----------> C[gopus (Opus Encoder)]
-  C ----------> D[Discord Voice Channel]
+  B --> C[gopus (Opus Encoder)]
+  C --> D[Discord Voice Channel]
 ```
 
 ### Pipeline Breakdown:

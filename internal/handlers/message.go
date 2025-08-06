@@ -72,6 +72,8 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 			commands.GremlinCommand(s, m)
 		case "lyrics":
 			commands.LyricsCommand(s, m, args[1:])
+		case "uma":
+			commands.UmaCommand(s, m, args[1:])
 		default:
 			s.ChannelMessageSend(m.ChannelID, "Unknown command. Try `!help` to see all available commands.")
 		}

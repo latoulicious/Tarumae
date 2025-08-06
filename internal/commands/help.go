@@ -49,7 +49,7 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 			},
 			{
 				Name:   "Fun Commands",
-				Value:  "• `!gremlin` - Post a random gremlin image\n• `!lyrics <song>` - Search for anime song lyrics",
+				Value:  "• `!gremlin` - Post a random gremlin image\n• `!lyrics <song>` - Search for anime song lyrics\n• `!uma char <name>` - Search for Uma Musume characters (with image navigation)",
 				Inline: false,
 			},
 			{

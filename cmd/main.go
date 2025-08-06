@@ -45,6 +45,10 @@ func main() {
 	// Register the slash command handler
 	dg.AddHandler(handlers.SlashCommandHandler)
 
+	// Register the reaction handlers for Uma character image navigation
+	dg.AddHandler(handlers.ReactionAddHandler)
+	dg.AddHandler(handlers.ReactionRemoveHandler)
+
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {

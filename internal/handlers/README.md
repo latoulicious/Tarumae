@@ -21,7 +21,7 @@ The bot now supports both traditional prefix commands (`!play`, `!queue`, etc.) 
 - `/queue add <url>` - Add a song to the queue
 - `/queue list` - Show the current queue
 - `/queue remove <index>` - Remove a song from the queue
-- `/queue clear` - Clear the entire queue
+- `/clear` - Clear the entire queue
 - `/skip` - Skip the current song
 - `/stop` - Stop playback and clear the queue
 - `/pause` - Pause the current playback
