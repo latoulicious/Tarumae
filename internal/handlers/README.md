@@ -34,7 +34,6 @@ The bot now supports both traditional prefix commands (`!play`, `!queue`, etc.) 
 - `/servers` - Show server information (Bot Owner Only)
 
 ### Fun Commands
-- `/lyrics <song>` - Search for anime song lyrics
 - `/gremlin` - Post a random gremlin image
 
 ## Managing Slash Commands
