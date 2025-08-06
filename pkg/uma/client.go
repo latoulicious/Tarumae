@@ -183,6 +183,212 @@ func (c *Client) GetCharacterImages(charaID int) *CharacterImagesResult {
 	return result
 }
 
+// SearchSupportCard searches for a support card by name
+func (c *Client) SearchSupportCard(query string) *SupportCardSearchResult {
+	// Check cache first
+	cacheKey := fmt.Sprintf("support_search_%s", strings.ToLower(query))
+	if cached := c.getFromCache(cacheKey); cached != nil {
+		if result, ok := cached.(*SupportCardSearchResult); ok {
+			return result
+		}
+	}
+
+	// First, get the list of support cards
+	listResult := c.GetSupportCardList()
+	if !listResult.Found {
+		result := &SupportCardSearchResult{
+			Found: false,
+			Error: listResult.Error,
+			Query: query,
+		}
+		c.setCache(cacheKey, result)
+		return result
+	}
+
+	// Find the best match
+	bestMatch := c.findBestSupportCardMatch(query, listResult.SupportCards)
+	if bestMatch == nil {
+		result := &SupportCardSearchResult{
+			Found: false,
+			Query: query,
+		}
+		c.setCache(cacheKey, result)
+		return result
+	}
+
+	// Get detailed information for the matched card
+	detailedResult := c.GetSupportCard(bestMatch.ID)
+	if !detailedResult.Found {
+		result := &SupportCardSearchResult{
+			Found: false,
+			Error: detailedResult.Error,
+			Query: query,
+		}
+		c.setCache(cacheKey, result)
+		return result
+	}
+
+	result := &SupportCardSearchResult{
+		Found:       true,
+		SupportCard: detailedResult.SupportCard,
+		Query:       query,
+	}
+
+	c.setCache(cacheKey, result)
+	return result
+}
+
+// GetSupportCardList fetches the list of all support cards
+func (c *Client) GetSupportCardList() *SupportCardListResult {
+	// Check cache first
+	cacheKey := "support_list"
+	if cached := c.getFromCache(cacheKey); cached != nil {
+		if result, ok := cached.(*SupportCardListResult); ok {
+			return result
+		}
+	}
+
+	// Make API request
+	url := fmt.Sprintf("%s/v1/support", c.baseURL)
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		result := &SupportCardListResult{
+			Found: false,
+			Error: fmt.Errorf("failed to fetch support card list: %v", err),
+		}
+		c.setCache(cacheKey, result)
+		return result
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		result := &SupportCardListResult{
+			Found: false,
+			Error: fmt.Errorf("API returned status code: %d", resp.StatusCode),
+		}
+		c.setCache(cacheKey, result)
+		return result
+	}
+
+	var supportCards []SupportCard
+	if err := json.NewDecoder(resp.Body).Decode(&supportCards); err != nil {
+		result := &SupportCardListResult{
+			Found: false,
+			Error: fmt.Errorf("failed to decode API response: %v", err),
+		}
+		c.setCache(cacheKey, result)
+		return result
+	}
+
+	result := &SupportCardListResult{
+		Found:        true,
+		SupportCards: supportCards,
+	}
+
+	c.setCache(cacheKey, result)
+	return result
+}
+
+// GetSupportCard fetches detailed information for a specific support card
+func (c *Client) GetSupportCard(supportID int) *SupportCardSearchResult {
+	// Check cache first
+	cacheKey := fmt.Sprintf("support_detail_%d", supportID)
+	if cached := c.getFromCache(cacheKey); cached != nil {
+		if result, ok := cached.(*SupportCardSearchResult); ok {
+			return result
+		}
+	}
+
+	// Make API request
+	url := fmt.Sprintf("%s/v1/support/%d", c.baseURL, supportID)
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		result := &SupportCardSearchResult{
+			Found: false,
+			Error: fmt.Errorf("failed to fetch support card details: %v", err),
+		}
+		c.setCache(cacheKey, result)
+		return result
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		result := &SupportCardSearchResult{
+			Found: false,
+			Error: fmt.Errorf("API returned status code: %d", resp.StatusCode),
+		}
+		c.setCache(cacheKey, result)
+		return result
+	}
+
+	var supportCard SupportCard
+	if err := json.NewDecoder(resp.Body).Decode(&supportCard); err != nil {
+		result := &SupportCardSearchResult{
+			Found: false,
+			Error: fmt.Errorf("failed to decode API response: %v", err),
+		}
+		c.setCache(cacheKey, result)
+		return result
+	}
+
+	result := &SupportCardSearchResult{
+		Found:       true,
+		SupportCard: &supportCard,
+	}
+
+	c.setCache(cacheKey, result)
+	return result
+}
+
+// findBestSupportCardMatch finds the best support card match for the given query
+func (c *Client) findBestSupportCardMatch(query string, supportCards []SupportCard) *SupportCard {
+	query = strings.ToLower(query)
+
+	// First, try exact match with English title
+	for _, card := range supportCards {
+		if strings.ToLower(card.TitleEn) == query {
+			return &card
+		}
+	}
+
+	// Then, try contains match with English title
+	for _, card := range supportCards {
+		if strings.Contains(strings.ToLower(card.TitleEn), query) {
+			return &card
+		}
+	}
+
+	// Try Japanese title
+	for _, card := range supportCards {
+		if strings.Contains(strings.ToLower(card.Title), query) {
+			return &card
+		}
+	}
+
+	// Try gametora identifier
+	for _, card := range supportCards {
+		if strings.Contains(strings.ToLower(card.Gametora), query) {
+			return &card
+		}
+	}
+
+	// Finally, try partial word match
+	queryWords := strings.Fields(query)
+	for _, card := range supportCards {
+		titleEn := strings.ToLower(card.TitleEn)
+		titleJp := strings.ToLower(card.Title)
+		gametora := strings.ToLower(card.Gametora)
+
+		for _, word := range queryWords {
+			if strings.Contains(titleEn, word) || strings.Contains(titleJp, word) || strings.Contains(gametora, word) {
+				return &card
+			}
+		}
+	}
+
+	return nil
+}
+
 // getFromCache retrieves an item from cache
 func (c *Client) getFromCache(key string) interface{} {
 	c.cacheMutex.RLock()

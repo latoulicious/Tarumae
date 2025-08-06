@@ -61,3 +61,32 @@ type CharacterImagesResult struct {
 	Error   error
 	CharaID int
 }
+
+// SupportCard represents a support card from the API
+type SupportCard struct {
+	CharaID      int    `json:"chara_id"`
+	Gametora     string `json:"gametora"`
+	ID           int    `json:"id"`
+	TitleEn      string `json:"title_en"`
+	Title        string `json:"title"`
+	Rarity       int    `json:"rarity"`
+	RarityString string `json:"rarity_string"`
+	StartDate    int64  `json:"start_date"`
+	Type         string `json:"type"`
+	TypeIconURL  string `json:"type_icon_url"`
+}
+
+// SupportCardSearchResult represents the result of a support card search
+type SupportCardSearchResult struct {
+	Found       bool
+	SupportCard *SupportCard
+	Error       error
+	Query       string
+}
+
+// SupportCardListResult represents the result of fetching support card list
+type SupportCardListResult struct {
+	Found        bool
+	SupportCards []SupportCard
+	Error        error
+}

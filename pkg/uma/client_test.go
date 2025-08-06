@@ -89,3 +89,50 @@ func TestGetCharacterImages(t *testing.T) {
 		}
 	}
 }
+
+func TestSearchCharacter(t *testing.T) {
+	client := NewClient()
+	result := client.SearchCharacter("Oguri Cap")
+
+	if result.Error != nil {
+		t.Errorf("Expected no error, got %v", result.Error)
+	}
+
+	if !result.Found {
+		t.Error("Expected to find character, but didn't")
+	}
+
+	if result.Character == nil {
+		t.Error("Expected character to be found, but got nil")
+	}
+
+	if result.Character.NameEn != "Oguri Cap" {
+		t.Errorf("Expected character name to be 'Oguri Cap', got '%s'", result.Character.NameEn)
+	}
+}
+
+func TestSearchSupportCard(t *testing.T) {
+	client := NewClient()
+	result := client.SearchSupportCard("daring tact")
+
+	if result.Error != nil {
+		t.Errorf("Expected no error, got %v", result.Error)
+	}
+
+	if !result.Found {
+		t.Error("Expected to find support card, but didn't")
+	}
+
+	if result.SupportCard == nil {
+		t.Error("Expected support card to be found, but got nil")
+	}
+
+	// Check if the support card has the expected properties
+	if result.SupportCard.ID == 0 {
+		t.Error("Expected support card to have an ID")
+	}
+
+	if result.SupportCard.TitleEn == "" && result.SupportCard.Title == "" {
+		t.Error("Expected support card to have a title")
+	}
+}
