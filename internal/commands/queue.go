@@ -27,7 +27,6 @@ var (
 
 // SetPresenceManager sets the global presence manager
 func SetPresenceManager(pm *presence.PresenceManager) {
-	log.Printf("Setting presence manager: %v", pm)
 	presenceManager = pm
 }
 
