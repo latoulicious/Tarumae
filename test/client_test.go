@@ -1,55 +1,21 @@
-package uma
+package test
 
 import (
 	"testing"
-	"time"
+
+	"github.com/latoulicious/HKTM/pkg/uma"
 )
 
+// TestNewClient tests the NewClient function
 func TestNewClient(t *testing.T) {
-	client := NewClient()
+	client := uma.NewClient()
 	if client == nil {
 		t.Fatal("NewClient() returned nil")
-	}
-
-	if client.baseURL != "https://umapyoi.net/api" {
-		t.Errorf("Expected baseURL to be 'https://umapyoi.net/api', got '%s'", client.baseURL)
-	}
-
-	if client.cacheTTL != 5*time.Minute {
-		t.Errorf("Expected cacheTTL to be 5 minutes, got %v", client.cacheTTL)
-	}
-}
-
-func TestFindBestMatch(t *testing.T) {
-	client := NewClient()
-
-	characters := []Character{
-		{ID: 4879, NameEn: "Oguri Cap", NameJp: "オグリキャップ"},
-		{ID: 4737, NameEn: "Special Week", NameJp: "スペシャルウィーク"},
-		{ID: 4536, NameEn: "Silence Suzuka", NameJp: "サイレンススズカ"},
-	}
-
-	// Test exact match
-	result := client.findBestMatch("oguri cap", characters)
-	if result == nil || result.NameEn != "Oguri Cap" {
-		t.Error("Expected to find 'Oguri Cap' with exact match")
-	}
-
-	// Test partial match
-	result = client.findBestMatch("oguri", characters)
-	if result == nil || result.NameEn != "Oguri Cap" {
-		t.Error("Expected to find 'Oguri Cap' with partial match")
-	}
-
-	// Test no match
-	result = client.findBestMatch("nonexistent", characters)
-	if result != nil {
-		t.Error("Expected no match for 'nonexistent'")
 	}
 }
 
 func TestGetCharacterImages(t *testing.T) {
-	client := NewClient()
+	client := uma.NewClient()
 
 	// Test with a known character ID (Admire Vega)
 	result := client.GetCharacterImages(5191)
@@ -90,16 +56,18 @@ func TestGetCharacterImages(t *testing.T) {
 	}
 }
 
-func TestSearchCharacter(t *testing.T) {
-	client := NewClient()
-	result := client.SearchCharacter("Oguri Cap")
+// TestSearchCharacterExactMatch tests exact character matching
+func TestSearchCharacterExactMatch(t *testing.T) {
+	client := uma.NewClient()
 
+	// Test exact match using the public SearchCharacter method
+	result := client.SearchCharacter("Oguri Cap")
 	if result.Error != nil {
 		t.Errorf("Expected no error, got %v", result.Error)
 	}
 
 	if !result.Found {
-		t.Error("Expected to find character, but didn't")
+		t.Error("Expected to find 'Oguri Cap' with exact match")
 	}
 
 	if result.Character == nil {
@@ -111,8 +79,46 @@ func TestSearchCharacter(t *testing.T) {
 	}
 }
 
+// TestSearchCharacterPartialMatch tests partial character matching
+func TestSearchCharacterPartialMatch(t *testing.T) {
+	client := uma.NewClient()
+
+	// Test partial match
+	result := client.SearchCharacter("oguri")
+	if result.Error != nil {
+		t.Errorf("Expected no error, got %v", result.Error)
+	}
+
+	if !result.Found {
+		t.Error("Expected to find character with partial match 'oguri'")
+	}
+
+	if result.Character == nil {
+		t.Error("Expected character to be found, but got nil")
+	}
+}
+
+// TestSearchCharacterNoMatch tests when no character is found
+func TestSearchCharacterNoMatch(t *testing.T) {
+	client := uma.NewClient()
+
+	// Test no match
+	result := client.SearchCharacter("nonexistentcharacter12345")
+	if result.Error != nil {
+		t.Errorf("Expected no error, got %v", result.Error)
+	}
+
+	if result.Found {
+		t.Error("Expected no match for 'nonexistentcharacter12345'")
+	}
+
+	if result.Character != nil {
+		t.Error("Expected no character to be found")
+	}
+}
+
 func TestSearchSupportCard(t *testing.T) {
-	client := NewClient()
+	client := uma.NewClient()
 	result := client.SearchSupportCard("daring tact")
 
 	if result.Error != nil {
