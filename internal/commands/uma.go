@@ -8,10 +8,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/latoulicious/HKTM/internal/config"
 	"github.com/latoulicious/HKTM/pkg/uma"
+	"github.com/latoulicious/HKTM/pkg/uma/navigation"
 )
 
 var umaClient = uma.NewClient()
-var navigationManager = uma.GetNavigationManager()
+var navigationManager = navigation.GetNavigationManager()
 var gametoraClient *uma.GametoraClient
 
 // InitializeGametoraClient initializes the global gametora client with configuration
@@ -309,7 +310,7 @@ func SkillsCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []stri
 	}
 
 	// Get navigation manager
-	supportCardNavManager := uma.GetSupportCardNavigationManager()
+	supportCardNavManager := navigation.GetSupportCardNavigationManager()
 
 	// Create success embed
 	var embed *discordgo.MessageEmbed

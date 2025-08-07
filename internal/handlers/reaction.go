@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/bwmarrin/discordgo"
-	"github.com/latoulicious/HKTM/pkg/uma"
+	"github.com/latoulicious/HKTM/pkg/uma/navigation"
 )
 
 // ReactionAddHandler handles reaction add events
@@ -18,11 +18,11 @@ func ReactionAddHandler(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 	}
 
 	// Handle Uma character image navigation
-	navigationManager := uma.GetNavigationManager()
+	navigationManager := navigation.GetNavigationManager()
 	navigationManager.HandleReaction(s, r)
 
 	// Handle support card version navigation
-	supportCardNavManager := uma.GetSupportCardNavigationManager()
+	supportCardNavManager := navigation.GetSupportCardNavigationManager()
 	supportCardNavManager.HandleSupportCardReaction(s, r)
 }
 

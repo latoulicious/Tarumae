@@ -5,6 +5,7 @@ import (
 
 	"github.com/latoulicious/HKTM/internal/config"
 	"github.com/latoulicious/HKTM/pkg/uma"
+	"github.com/latoulicious/HKTM/pkg/uma/navigation"
 )
 
 // createTestConfig creates a test configuration
@@ -73,7 +74,7 @@ func TestSupportCardMultipleVersions(t *testing.T) {
 
 	// Test navigation embed creation
 	t.Log("🧭 Testing navigation embed for version 1 (SSR):")
-	navManager := uma.GetSupportCardNavigationManager()
+	navManager := navigation.GetSupportCardNavigationManager()
 	navEmbed := navManager.CreateSupportCardEmbed(result.SupportCards[0], result.SupportCards, 0)
 
 	if navEmbed.Title == "" {
