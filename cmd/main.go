@@ -12,6 +12,7 @@ import (
 	"github.com/latoulicious/HKTM/internal/config"
 	"github.com/latoulicious/HKTM/internal/handlers"
 	"github.com/latoulicious/HKTM/internal/presence"
+	"github.com/latoulicious/HKTM/pkg/uma"
 )
 
 func main() {
@@ -73,4 +74,9 @@ func main() {
 
 	// Cleanly close down the Discord session.
 	dg.Close()
+
+	// Stop the build ID manager cron job
+	if gametoraClient := uma.GetGametoraClient(); gametoraClient != nil {
+		gametoraClient.StopBuildIDManager()
+	}
 }

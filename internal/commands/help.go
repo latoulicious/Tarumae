@@ -60,6 +60,14 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 				Inline: false,
 			},
 			{
+				Name: "Utility Commands (Bot Owner Only)",
+				Value: strings.Join([]string{
+					"• `!utility cron` - Check cron job status",
+					"• `!utility cron-refresh` - Manually trigger build ID refresh",
+				}, "\n"),
+				Inline: false,
+			},
+			{
 				Name: "Admin Commands (Bot Owner Only)",
 				Value: strings.Join([]string{
 					"• `!leave <server_id>` - Force bot to leave a server by ID",

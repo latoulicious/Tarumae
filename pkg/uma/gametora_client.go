@@ -7,17 +7,20 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/latoulicious/HKTM/pkg/cron"
 )
 
 // GametoraClient represents the Gametora API client for stable JSON endpoints
 type GametoraClient struct {
-	baseURL    string
-	httpClient *http.Client
-	cache      map[string]*CacheEntry
-	cacheMutex sync.RWMutex
-	cacheTTL   time.Duration
-	buildID    string
-	buildMutex sync.RWMutex
+	baseURL        string
+	httpClient     *http.Client
+	cache          map[string]*CacheEntry
+	cacheMutex     sync.RWMutex
+	cacheTTL       time.Duration
+	buildID        string
+	buildMutex     sync.RWMutex
+	buildIDManager *cron.BuildIDManager
 }
 
 // GametoraSupportsResponse represents the response from the supports.json endpoint
@@ -133,7 +136,7 @@ type SimplifiedGametoraSearchResult struct {
 
 // NewGametoraClient creates a new Gametora API client
 func NewGametoraClient() *GametoraClient {
-	return &GametoraClient{
+	client := &GametoraClient{
 		baseURL: "https://gametora.com/_next/data",
 		httpClient: &http.Client{
 			Timeout: 15 * time.Second,
@@ -141,6 +144,14 @@ func NewGametoraClient() *GametoraClient {
 		cache:    make(map[string]*CacheEntry),
 		cacheTTL: 30 * time.Minute, // Cache for 30 minutes
 	}
+
+	// Initialize build ID manager
+	client.buildIDManager = cron.NewBuildIDManager(client.refreshBuildID)
+
+	// Set global instance
+	globalGametoraClient = client
+
+	return client
 }
 
 // GetBuildID fetches the current build ID from Gametora
@@ -795,4 +806,41 @@ func (c *GametoraClient) DebugSearchSupportCard(query string) {
 				i+1, match.Support.NameJp, match.Support.NameJp, match.Score, match.Reason)
 		}
 	}
+}
+
+// Global Gametora client instance
+var globalGametoraClient *GametoraClient
+
+// GetGametoraClient returns the global Gametora client instance
+func GetGametoraClient() *GametoraClient {
+	return globalGametoraClient
+}
+
+// GetBuildIDManager returns the build ID manager
+func (c *GametoraClient) GetBuildIDManager() *cron.BuildIDManager {
+	return c.buildIDManager
+}
+
+// RefreshBuildID manually triggers a build ID refresh
+func (c *GametoraClient) RefreshBuildID() error {
+	return c.refreshBuildID()
+}
+
+// StopBuildIDManager stops the build ID manager cron job
+func (c *GametoraClient) StopBuildIDManager() {
+	if c.buildIDManager != nil {
+		c.buildIDManager.Stop()
+	}
+}
+
+// refreshBuildID refreshes the build ID by fetching it from Gametora
+func (c *GametoraClient) refreshBuildID() error {
+	// Clear the current build ID to force a fresh fetch
+	c.buildMutex.Lock()
+	c.buildID = ""
+	c.buildMutex.Unlock()
+
+	// Fetch new build ID
+	_, err := c.GetBuildID()
+	return err
 }
