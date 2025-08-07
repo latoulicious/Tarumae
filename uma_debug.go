@@ -32,7 +32,7 @@ func main() {
 	if result.Found {
 		fmt.Printf("✅ Found support card: %s\n", result.SupportCard.NameJp)
 		fmt.Printf("   Character: %s\n", result.SupportCard.CharName)
-		fmt.Printf("   Rarity: %d\n", result.SupportCard.Rarity)
+		fmt.Printf("   Rarity: %s\n", uma.GetRarityText(result.SupportCard.Rarity))
 		fmt.Printf("   Type: %s\n", result.SupportCard.Type)
 		fmt.Printf("   Support ID: %d\n", result.SupportCard.SupportID)
 		fmt.Printf("   URL Name: %s\n", result.SupportCard.URLName)
@@ -45,14 +45,7 @@ func main() {
 		if len(result.SupportCards) > 1 {
 			fmt.Printf("\n📋 All versions found (%d):\n", len(result.SupportCards))
 			for i, card := range result.SupportCards {
-				rarityText := "R"
-				switch card.Rarity {
-				case 2:
-					rarityText = "SR"
-				case 3:
-					rarityText = "SSR"
-				}
-				fmt.Printf("  %d. %s (%s) - ID: %d\n", i+1, card.NameJp, rarityText, card.SupportID)
+				fmt.Printf("  %d. %s (%s) - ID: %d\n", i+1, card.NameJp, uma.GetRarityText(card.Rarity), card.SupportID)
 			}
 
 			// Test navigation embed creation

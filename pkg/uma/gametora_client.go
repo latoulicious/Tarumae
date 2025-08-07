@@ -503,6 +503,20 @@ func (c *GametoraClient) GetSupportCardImageURL(urlName string) string {
 	return ""
 }
 
+// GetRarityText converts numeric rarity to text representation
+func GetRarityText(rarity int) string {
+	switch rarity {
+	case 3:
+		return "SSR"
+	case 2:
+		return "SR"
+	case 1:
+		return "R"
+	default:
+		return fmt.Sprintf("Unknown(%d)", rarity)
+	}
+}
+
 // DebugSearchSupportCard is a debug function that prints detailed information about the search process
 func (c *GametoraClient) DebugSearchSupportCard(query string) {
 	fmt.Printf("🔍 Debugging search for: %s\n", query)

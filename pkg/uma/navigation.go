@@ -383,14 +383,7 @@ func (scnm *SupportCardNavigationManager) createSupportCardEmbed(supportCard *Si
 	// Build footer text
 	footerText := "Data from Gametora API"
 	if len(allCards) > 1 {
-		rarityText := "R"
-		switch supportCard.Rarity {
-		case 2:
-			rarityText = "SR"
-		case 3:
-			rarityText = "SSR"
-		}
-		footerText = fmt.Sprintf("Data from Gametora API | %s Version (%d of %d)", rarityText, currentIndex+1, len(allCards))
+		footerText = fmt.Sprintf("Data from Gametora API | %s Version (%d of %d)", GetRarityText(supportCard.Rarity), currentIndex+1, len(allCards))
 	}
 
 	// Create embed
@@ -404,7 +397,7 @@ func (scnm *SupportCardNavigationManager) createSupportCardEmbed(supportCard *Si
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:   "🎴 Rarity",
-				Value:  fmt.Sprintf("%d", supportCard.Rarity),
+				Value:  GetRarityText(supportCard.Rarity),
 				Inline: true,
 			},
 			{
@@ -478,20 +471,12 @@ func (scnm *SupportCardNavigationManager) createSupportCardEmbed(supportCard *Si
 	if len(allCards) > 1 {
 		var versionsText strings.Builder
 		for i, card := range allCards {
-			rarityText := "R"
-			switch card.Rarity {
-			case 2:
-				rarityText = "SR"
-			case 3:
-				rarityText = "SSR"
-			}
-
 			indicator := "○"
 			if i == currentIndex {
 				indicator = "●"
 			}
 
-			versionsText.WriteString(fmt.Sprintf("%s %s (%s) - ID: %d", indicator, card.NameJp, rarityText, card.SupportID))
+			versionsText.WriteString(fmt.Sprintf("%s %s (%s) - ID: %d", indicator, card.NameJp, GetRarityText(card.Rarity), card.SupportID))
 			if i < len(allCards)-1 {
 				versionsText.WriteString("\n")
 			}
