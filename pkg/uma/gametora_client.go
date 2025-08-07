@@ -20,91 +20,6 @@ type GametoraClient struct {
 	buildMutex sync.RWMutex
 }
 
-// GametoraSupportCard represents the support card data from Gametora JSON API
-type GametoraSupportCard struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	TitleEn     string `json:"titleEn"`
-	Rarity      string `json:"rarity"`
-	Type        string `json:"type"`
-	Character   string `json:"character"`
-	CharacterEn string `json:"characterEn"`
-	URLName     string `json:"url_name"`
-	Levels      []struct {
-		Level int `json:"level"`
-		Stats struct {
-			Speed   int `json:"speed,omitempty"`
-			Stamina int `json:"stamina,omitempty"`
-			Power   int `json:"power,omitempty"`
-			Guts    int `json:"guts,omitempty"`
-			Wisdom  int `json:"wisdom,omitempty"`
-		} `json:"stats"`
-	} `json:"levels"`
-	Skills []struct {
-		Name          string `json:"name"`
-		NameEn        string `json:"nameEn"`
-		Description   string `json:"description"`
-		DescriptionEn string `json:"descriptionEn"`
-		Level         int    `json:"level"`
-	} `json:"skills"`
-	Events []struct {
-		Title       string `json:"title"`
-		TitleEn     string `json:"titleEn"`
-		Description string `json:"description"`
-		Choices     []struct {
-			Text    string   `json:"text"`
-			TextEn  string   `json:"textEn"`
-			Effects []string `json:"effects"`
-		} `json:"choices"`
-	} `json:"events"`
-	TrainingBonuses []struct {
-		TrainingType   string `json:"trainingType"`
-		TrainingTypeEn string `json:"trainingTypeEn"`
-		Bonus          string `json:"bonus"`
-		Description    string `json:"description"`
-	} `json:"trainingBonuses"`
-	Effects []struct {
-		Name          string `json:"name"`
-		NameEn        string `json:"nameEn"`
-		Description   string `json:"description"`
-		DescriptionEn string `json:"descriptionEn"`
-		Type          string `json:"type"`
-	} `json:"effects"`
-	Hints []struct {
-		Title         string `json:"title"`
-		TitleEn       string `json:"titleEn"`
-		Description   string `json:"description"`
-		DescriptionEn string `json:"descriptionEn"`
-	} `json:"hints"`
-}
-
-// GametoraCharacter represents the character data from Gametora JSON API
-type GametoraCharacter struct {
-	ID            string `json:"id"`
-	Name          string `json:"name"`
-	NameEn        string `json:"nameEn"`
-	Profile       string `json:"profile"`
-	ProfileEn     string `json:"profileEn"`
-	Height        string `json:"height"`
-	Weight        string `json:"weight"`
-	Birthday      string `json:"birthday"`
-	BloodType     string `json:"bloodType"`
-	ThreeSizes    string `json:"threeSizes"`
-	Hobbies       string `json:"hobbies"`
-	HobbiesEn     string `json:"hobbiesEn"`
-	Speciality    string `json:"speciality"`
-	SpecialityEn  string `json:"specialityEn"`
-	Personality   string `json:"personality"`
-	PersonalityEn string `json:"personalityEn"`
-	Motivation    string `json:"motivation"`
-	MotivationEn  string `json:"motivationEn"`
-	Images        []struct {
-		URL         string `json:"url"`
-		Description string `json:"description"`
-		Type        string `json:"type"`
-	} `json:"images"`
-}
-
 // GametoraSupportsResponse represents the response from the supports.json endpoint
 type GametoraSupportsResponse struct {
 	PageProps struct {
@@ -158,25 +73,59 @@ type GametoraSupportsResponse struct {
 	} `json:"pageProps"`
 }
 
-// GametoraCharacterResponse represents the response from the character JSON endpoint
-type GametoraCharacterResponse struct {
-	PageProps struct {
-		Character GametoraCharacter `json:"character"`
-	} `json:"pageProps"`
+// SimplifiedSupportCard represents the simplified support card data from Gametora JSON API
+type SimplifiedSupportCard struct {
+	URLName     string  `json:"url_name"`
+	SupportID   int     `json:"support_id"`
+	CharID      int     `json:"char_id"`
+	CharName    string  `json:"char_name"`
+	NameJp      string  `json:"name_jp"`
+	NameKo      string  `json:"name_ko"`
+	NameTw      string  `json:"name_tw"`
+	Rarity      int     `json:"rarity"`
+	Type        string  `json:"type"`
+	Obtained    string  `json:"obtained"`
+	Release     string  `json:"release"`
+	ReleaseKo   string  `json:"release_ko,omitempty"`
+	ReleaseZhTw string  `json:"release_zh_tw,omitempty"`
+	ReleaseEn   string  `json:"release_en,omitempty"`
+	Effects     [][]int `json:"effects"`
+	Hints       struct {
+		HintSkills []struct {
+			ID     int      `json:"id"`
+			Type   []string `json:"type"`
+			NameEn string   `json:"name_en"`
+			IconID int      `json:"iconid"`
+		} `json:"hint_skills"`
+		HintOthers []struct {
+			HintType  int `json:"hint_type"`
+			HintValue int `json:"hint_value"`
+		} `json:"hint_others"`
+	} `json:"hints"`
+	EventSkills []struct {
+		ID     int      `json:"id"`
+		Type   []string `json:"type"`
+		NameEn string   `json:"name_en"`
+		Rarity int      `json:"rarity"`
+		IconID int      `json:"iconid"`
+	} `json:"event_skills"`
+	Unique *struct {
+		Level   int `json:"level"`
+		Effects []struct {
+			Type   int `json:"type"`
+			Value  int `json:"value"`
+			Value1 int `json:"value_1,omitempty"`
+			Value2 int `json:"value_2,omitempty"`
+			Value3 int `json:"value_3,omitempty"`
+			Value4 int `json:"value_4,omitempty"`
+		} `json:"effects"`
+	} `json:"unique,omitempty"`
 }
 
-// GametoraSupportCardResponse represents the response from the support card JSON endpoint
-type GametoraSupportCardResponse struct {
-	PageProps struct {
-		SupportCard GametoraSupportCard `json:"supportCard"`
-	} `json:"pageProps"`
-}
-
-// GametoraSearchResult represents the result of a Gametora search
-type GametoraSearchResult struct {
+// SimplifiedGametoraSearchResult represents the result of a simplified Gametora search
+type SimplifiedGametoraSearchResult struct {
 	Found       bool
-	SupportCard *GametoraSupportCard
-	Character   *GametoraCharacter
+	SupportCard *SimplifiedSupportCard
 	Error       error
 	Query       string
 }
@@ -272,12 +221,12 @@ func (c *GametoraClient) GetBuildID() (string, error) {
 	return fallbackBuildID, nil
 }
 
-// SearchSupportCard searches for a support card using the Gametora JSON API
-func (c *GametoraClient) SearchSupportCard(query string) *GametoraSearchResult {
+// SearchSimplifiedSupportCard searches for a support card using the Gametora JSON API and returns simplified structure
+func (c *GametoraClient) SearchSimplifiedSupportCard(query string) *SimplifiedGametoraSearchResult {
 	// Check cache first
-	cacheKey := fmt.Sprintf("gametora_support_%s", strings.ToLower(query))
+	cacheKey := fmt.Sprintf("gametora_simplified_support_%s", strings.ToLower(query))
 	if cached := c.getFromCache(cacheKey); cached != nil {
-		if result, ok := cached.(*GametoraSearchResult); ok {
+		if result, ok := cached.(*SimplifiedGametoraSearchResult); ok {
 			return result
 		}
 	}
@@ -285,7 +234,7 @@ func (c *GametoraClient) SearchSupportCard(query string) *GametoraSearchResult {
 	// Get build ID
 	buildID, err := c.GetBuildID()
 	if err != nil {
-		result := &GametoraSearchResult{
+		result := &SimplifiedGametoraSearchResult{
 			Found: false,
 			Error: fmt.Errorf("failed to get build ID: %v", err),
 			Query: query,
@@ -298,7 +247,7 @@ func (c *GametoraClient) SearchSupportCard(query string) *GametoraSearchResult {
 	supportsURL := fmt.Sprintf("%s/%s/umamusume/supports.json", c.baseURL, buildID)
 	resp, err := c.httpClient.Get(supportsURL)
 	if err != nil {
-		result := &GametoraSearchResult{
+		result := &SimplifiedGametoraSearchResult{
 			Found: false,
 			Error: fmt.Errorf("failed to fetch supports list: %v", err),
 			Query: query,
@@ -309,7 +258,7 @@ func (c *GametoraClient) SearchSupportCard(query string) *GametoraSearchResult {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		result := &GametoraSearchResult{
+		result := &SimplifiedGametoraSearchResult{
 			Found: false,
 			Error: fmt.Errorf("supports API returned status code: %d", resp.StatusCode),
 			Query: query,
@@ -320,7 +269,7 @@ func (c *GametoraClient) SearchSupportCard(query string) *GametoraSearchResult {
 
 	var supportsResp GametoraSupportsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&supportsResp); err != nil {
-		result := &GametoraSearchResult{
+		result := &SimplifiedGametoraSearchResult{
 			Found: false,
 			Error: fmt.Errorf("failed to decode supports response: %v", err),
 			Query: query,
@@ -414,7 +363,7 @@ func (c *GametoraClient) SearchSupportCard(query string) *GametoraSearchResult {
 	}
 
 	if bestMatch == nil {
-		result := &GametoraSearchResult{
+		result := &SimplifiedGametoraSearchResult{
 			Found: false,
 			Query: query,
 		}
@@ -422,122 +371,31 @@ func (c *GametoraClient) SearchSupportCard(query string) *GametoraSearchResult {
 		return result
 	}
 
-	// The supports.json already contains all the data we need
-	// We don't need to make another API call since the core data is already in the list
-	// Just create the support card from the list data
-	supportCard := &GametoraSupportCard{
+	// Convert to simplified structure
+	simplifiedCard := &SimplifiedSupportCard{
 		URLName:     bestMatch.URLName,
-		Character:   bestMatch.CharName,
-		CharacterEn: bestMatch.CharName,
-		Title:       bestMatch.NameJp,
-		TitleEn:     bestMatch.NameJp, // Using Japanese name as English name since API doesn't provide English name
-		Rarity:      fmt.Sprintf("%d", bestMatch.Rarity),
+		SupportID:   bestMatch.SupportID,
+		CharID:      bestMatch.CharID,
+		CharName:    bestMatch.CharName,
+		NameJp:      bestMatch.NameJp,
+		NameKo:      bestMatch.NameKo,
+		NameTw:      bestMatch.NameTw,
+		Rarity:      bestMatch.Rarity,
 		Type:        bestMatch.Type,
+		Obtained:    bestMatch.Obtained,
+		Release:     bestMatch.Release,
+		ReleaseKo:   bestMatch.ReleaseKo,
+		ReleaseZhTw: bestMatch.ReleaseZhTw,
+		ReleaseEn:   bestMatch.ReleaseEn,
+		Effects:     bestMatch.Effects,
+		Hints:       bestMatch.Hints,
+		EventSkills: bestMatch.EventSkills,
+		Unique:      bestMatch.Unique,
 	}
 
-	// Copy effects data
-	for _, effect := range bestMatch.Effects {
-		supportCard.Effects = append(supportCard.Effects, struct {
-			Name          string `json:"name"`
-			NameEn        string `json:"nameEn"`
-			Description   string `json:"description"`
-			DescriptionEn string `json:"descriptionEn"`
-			Type          string `json:"type"`
-		}{
-			Name:          fmt.Sprintf("Level %d", effect[0]),
-			NameEn:        fmt.Sprintf("Level %d", effect[0]),
-			Description:   fmt.Sprintf("Effect: %d", effect[1]),
-			DescriptionEn: fmt.Sprintf("Effect: %d", effect[1]),
-			Type:          fmt.Sprintf("Level %d", effect[0]),
-		})
-	}
-
-	// Copy hints data
-	for _, hint := range bestMatch.Hints.HintSkills {
-		supportCard.Hints = append(supportCard.Hints, struct {
-			Title         string `json:"title"`
-			TitleEn       string `json:"titleEn"`
-			Description   string `json:"description"`
-			DescriptionEn string `json:"descriptionEn"`
-		}{
-			Title:         fmt.Sprintf("Skill %d", hint.ID),
-			TitleEn:       hint.NameEn,
-			Description:   fmt.Sprintf("Type: %v", hint.Type),
-			DescriptionEn: fmt.Sprintf("Type: %v", hint.Type),
-		})
-	}
-	for _, hint := range bestMatch.Hints.HintOthers {
-		supportCard.Hints = append(supportCard.Hints, struct {
-			Title         string `json:"title"`
-			TitleEn       string `json:"titleEn"`
-			Description   string `json:"description"`
-			DescriptionEn string `json:"descriptionEn"`
-		}{
-			Title:         fmt.Sprintf("Hint Type %d", hint.HintType),
-			TitleEn:       fmt.Sprintf("Hint Type %d", hint.HintType),
-			Description:   fmt.Sprintf("Value: %d", hint.HintValue),
-			DescriptionEn: fmt.Sprintf("Value: %d", hint.HintValue),
-		})
-	}
-
-	// Copy events data
-	for _, event := range bestMatch.EventSkills {
-		supportCard.Events = append(supportCard.Events, struct {
-			Title       string `json:"title"`
-			TitleEn     string `json:"titleEn"`
-			Description string `json:"description"`
-			Choices     []struct {
-				Text    string   `json:"text"`
-				TextEn  string   `json:"textEn"`
-				Effects []string `json:"effects"`
-			} `json:"choices"`
-		}{
-			Title:       fmt.Sprintf("Event Skill %d", event.ID),
-			TitleEn:     event.NameEn,
-			Description: fmt.Sprintf("Type: %v, Rarity: %d", event.Type, event.Rarity),
-			Choices: []struct {
-				Text    string   `json:"text"`
-				TextEn  string   `json:"textEn"`
-				Effects []string `json:"effects"`
-			}{
-				{Text: "Description not available", TextEn: "Description not available"},
-				{Text: "Description not available", TextEn: "Description not available"},
-			},
-		})
-	}
-
-	// Copy unique data
-	if bestMatch.Unique != nil {
-		supportCard.Levels = append(supportCard.Levels, struct {
-			Level int `json:"level"`
-			Stats struct {
-				Speed   int `json:"speed,omitempty"`
-				Stamina int `json:"stamina,omitempty"`
-				Power   int `json:"power,omitempty"`
-				Guts    int `json:"guts,omitempty"`
-				Wisdom  int `json:"wisdom,omitempty"`
-			} `json:"stats"`
-		}{
-			Level: bestMatch.Unique.Level,
-			Stats: struct {
-				Speed   int `json:"speed,omitempty"`
-				Stamina int `json:"stamina,omitempty"`
-				Power   int `json:"power,omitempty"`
-				Guts    int `json:"guts,omitempty"`
-				Wisdom  int `json:"wisdom,omitempty"`
-			}{
-				Speed:   bestMatch.Unique.Effects[0].Value,
-				Stamina: bestMatch.Unique.Effects[0].Value1,
-				Power:   bestMatch.Unique.Effects[0].Value2,
-				Guts:    bestMatch.Unique.Effects[0].Value3,
-				Wisdom:  bestMatch.Unique.Effects[0].Value4,
-			},
-		})
-	}
-
-	result := &GametoraSearchResult{
+	result := &SimplifiedGametoraSearchResult{
 		Found:       true,
-		SupportCard: supportCard,
+		SupportCard: simplifiedCard,
 		Query:       query,
 	}
 

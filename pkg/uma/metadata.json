@@ -1,0 +1,80 @@
+{
+	"pageProps": {
+        "_comment": "Returned Snippet metadata from Gametora API",
+		"isCharCard": false,
+		"itemData": {},
+		"eventData": {},
+		"objectiveData": [],
+		"charData": {
+			"url_name": "win-variation",
+			"char_id": 1117,
+			"jp_name": "ウインバリアシオン",
+			"en_name": "Win Variation",
+			"name_ko": "윈 바리아시옹",
+			"name_tw": "凱旋芭蕾",
+			"playable": true,
+			"active": true,
+			"va_en": "Hika Tsukishiro",
+			"va_ja": "月城日花",
+			"va_ko": "츠키시로 히카",
+			"va_zh_tw": "月城日花",
+			"three_sizes": {
+				"b": 76,
+				"w": 55,
+				"h": 80
+			},
+			"birth_day": 10,
+			"birth_month": 4,
+			"birth_year": 2008,
+			"height": 159,
+			"sex": 1,
+			"race": "uma",
+			"rl": {}
+		},
+		"profileData": {
+			"char_id": 1117,
+			"ja": {
+				"self_intro": "ウインバリアシオンっす。主役…プリンシパルになるには努力あるのみ！周りは強いヤツばっかだけど挫けないっす！",
+				"tagline": "七転八起。何度負けてもその心は砕けない！",
+				"weight": "増量中",
+				"shoes": "左右ともに23.5cm",
+				"dorm": "栗東寮",
+				"class": "高等部",
+				"ears": "クラシック音楽には反応しやすい",
+				"tail": "戸惑いはするけど、触られるのは嫌ではない",
+				"strong": "スイカ割り、柔軟体操",
+				"weak": "コンテンポラリーダンス、モデル歩き",
+				"family": "爪をケアする方法は、母親から教わった",
+				"secrets": [
+					"実は、慣れた場所なら目をつむっていても歩ける。",
+					"実は、しじみの身を残すのは許せない派。"
+				]
+			},
+			"ko": {
+				"secrets": [
+					"사실은 익숙한 장소라면 눈을 감고도 걸을 수 있다.",
+					"사실은 바지락 살을 남기는 걸 용서하지 못한다."
+				]
+			},
+			"zh_tw": {
+				"secrets": [
+					"其實她如果在待習慣的地方即使閉著眼睛也能行走。",
+					"其實她是主張不能留下蛤蠣肉的那一派。"
+				]
+			},
+			"en": {
+				"secrets": []
+			}
+		},
+		"profileArtMeta": {
+			"url_name": "win-variation",
+			"images": {
+				"uniform": true,
+				"racing": true,
+				"concept": true,
+				"starting-future": true
+			}
+		},
+		"evoLocData": {}
+	}
+}

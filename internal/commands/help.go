@@ -56,7 +56,7 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 			},
 			{
 				Name:   "Fun Commands",
-				Value:  "• `!gremlin` - Post a random gremlin image\n• `!uma char <name>` - Search for Uma Musume characters (with image navigation)",
+				Value:  "• `!gremlin` - Post a random gremlin image\n• `!uma char <name>` - Search for Uma Musume characters (with image navigation)\n• `!uma support <name>` - Search for Uma Musume support cards\n• `!uma skills <name>` - Get skills for a support card (Gametora API)",
 				Inline: false,
 			},
 			{
