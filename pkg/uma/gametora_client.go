@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/latoulicious/HKTM/internal/config"
 	"github.com/latoulicious/HKTM/pkg/cron"
 )
 
@@ -135,7 +136,7 @@ type SimplifiedGametoraSearchResult struct {
 }
 
 // NewGametoraClient creates a new Gametora API client
-func NewGametoraClient() *GametoraClient {
+func NewGametoraClient(cfg *config.Config) *GametoraClient {
 	client := &GametoraClient{
 		baseURL: "https://gametora.com/_next/data",
 		httpClient: &http.Client{
@@ -145,8 +146,8 @@ func NewGametoraClient() *GametoraClient {
 		cacheTTL: 30 * time.Minute, // Cache for 30 minutes
 	}
 
-	// Initialize build ID manager
-	client.buildIDManager = cron.NewBuildIDManager(client.refreshBuildID)
+	// Initialize build ID manager with config
+	client.buildIDManager = cron.NewBuildIDManager(client.refreshBuildID, cfg)
 
 	// Set global instance
 	globalGametoraClient = client

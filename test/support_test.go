@@ -3,16 +3,28 @@ package test
 import (
 	"testing"
 
+	"github.com/latoulicious/HKTM/internal/config"
 	"github.com/latoulicious/HKTM/pkg/uma"
 )
+
+// createTestConfig creates a test configuration
+func createTestConfig() *config.Config {
+	return &config.Config{
+		DiscordToken: "test-token",
+		OwnerID:      "test-owner",
+		CronEnabled:  true,
+		CronSchedule: "0 0 */6 * * *", // Every 6 hours
+	}
+}
 
 // TestSupportCardSearch tests the support card search functionality
 func TestSupportCardSearch(t *testing.T) {
 	query := "10001-special-week" // Use a known support card for testing
 	t.Logf("🔍 Testing Uma search for: %s", query)
 
-	// Create Gametora client
-	client := uma.NewGametoraClient()
+	// Create Gametora client with test config
+	cfg := createTestConfig()
+	client := uma.NewGametoraClient(cfg)
 
 	// Test the actual search
 	result := client.SearchSimplifiedSupportCard(query)
@@ -42,7 +54,8 @@ func TestSupportCardSearch(t *testing.T) {
 // TestSupportCardMultipleVersions tests when multiple versions of a support card are found
 func TestSupportCardMultipleVersions(t *testing.T) {
 	query := "10001-special-week" // This should have multiple versions
-	client := uma.NewGametoraClient()
+	cfg := createTestConfig()
+	client := uma.NewGametoraClient(cfg)
 
 	result := client.SearchSimplifiedSupportCard(query)
 	if !result.Found {
@@ -79,7 +92,8 @@ func TestSupportCardMultipleVersions(t *testing.T) {
 // TestSupportCardHints tests support card hints functionality
 func TestSupportCardHints(t *testing.T) {
 	query := "10001-special-week"
-	client := uma.NewGametoraClient()
+	cfg := createTestConfig()
+	client := uma.NewGametoraClient(cfg)
 
 	result := client.SearchSimplifiedSupportCard(query)
 	if !result.Found {
@@ -99,7 +113,8 @@ func TestSupportCardHints(t *testing.T) {
 // TestSupportCardEventSkills tests support card event skills functionality
 func TestSupportCardEventSkills(t *testing.T) {
 	query := "10001-special-week"
-	client := uma.NewGametoraClient()
+	cfg := createTestConfig()
+	client := uma.NewGametoraClient(cfg)
 
 	result := client.SearchSimplifiedSupportCard(query)
 	if !result.Found {
@@ -119,7 +134,8 @@ func TestSupportCardEventSkills(t *testing.T) {
 // TestSupportCardNotFound tests the behavior when a support card is not found
 func TestSupportCardNotFound(t *testing.T) {
 	query := "nonexistent-support-card-12345"
-	client := uma.NewGametoraClient()
+	cfg := createTestConfig()
+	client := uma.NewGametoraClient(cfg)
 
 	result := client.SearchSimplifiedSupportCard(query)
 	if result.Found {
@@ -139,7 +155,8 @@ func TestSupportCardNotFound(t *testing.T) {
 // TestSupportCardDebugSearch tests the debug search functionality
 func TestSupportCardDebugSearch(t *testing.T) {
 	query := "10001-special-week"
-	client := uma.NewGametoraClient()
+	cfg := createTestConfig()
+	client := uma.NewGametoraClient(cfg)
 
 	// Test debug search (this should not fail)
 	client.DebugSearchSupportCard(query)

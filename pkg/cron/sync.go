@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/latoulicious/HKTM/internal/config"
 	"github.com/robfig/cron/v3"
 )
 
@@ -16,35 +17,48 @@ type BuildIDManager struct {
 	mutex       sync.RWMutex
 	isRunning   bool
 	schedule    string
+	config      *config.Config
 }
 
 // NewBuildIDManager creates a new build ID manager
-func NewBuildIDManager(refreshFunc func() error) *BuildIDManager {
-	return NewBuildIDManagerWithSchedule(refreshFunc, "0 0 */6 * * *") // Default: every 6 hours
+func NewBuildIDManager(refreshFunc func() error, cfg *config.Config) *BuildIDManager {
+	return NewBuildIDManagerWithSchedule(refreshFunc, cfg)
 }
 
 // NewBuildIDManagerWithSchedule creates a new build ID manager with custom schedule
-func NewBuildIDManagerWithSchedule(refreshFunc func() error, schedule string) *BuildIDManager {
+func NewBuildIDManagerWithSchedule(refreshFunc func() error, cfg *config.Config) *BuildIDManager {
 	manager := &BuildIDManager{
 		cron:        cron.New(cron.WithSeconds()),
 		refreshFunc: refreshFunc,
-		schedule:    schedule,
+		config:      cfg,
 	}
 
-	// Start the cron scheduler
-	manager.cron.Start()
+	// Use config schedule or default
+	schedule := cfg.CronSchedule
+	if schedule == "" {
+		schedule = "0 0 */6 * * *" // Default: every 6 hours
+	}
+	manager.schedule = schedule
 
-	// Schedule build ID refresh
-	entryID, err := manager.cron.AddFunc(schedule, manager.refreshBuildID)
-	if err != nil {
-		log.Printf("Failed to schedule build ID refresh: %v", err)
+	// Only start cron if enabled
+	if cfg.CronEnabled {
+		// Start the cron scheduler
+		manager.cron.Start()
+
+		// Schedule build ID refresh
+		entryID, err := manager.cron.AddFunc(schedule, manager.refreshBuildID)
+		if err != nil {
+			log.Printf("Failed to schedule build ID refresh: %v", err)
+		} else {
+			manager.cronEntry = entryID
+			log.Printf("Scheduled build ID refresh with schedule: %s", schedule)
+		}
+
+		// Initial build ID fetch
+		go manager.refreshBuildID()
 	} else {
-		manager.cronEntry = entryID
-		log.Printf("Scheduled build ID refresh with schedule: %s", schedule)
+		log.Println("Cron is disabled, build ID refresh will not be scheduled")
 	}
-
-	// Initial build ID fetch
-	go manager.refreshBuildID()
 
 	return manager
 }
@@ -87,7 +101,7 @@ func (bm *BuildIDManager) Stop() {
 
 // GetNextRun returns the next scheduled run time
 func (bm *BuildIDManager) GetNextRun() time.Time {
-	if bm.cron != nil {
+	if bm.cron != nil && bm.config.CronEnabled {
 		entries := bm.cron.Entries()
 		if len(entries) > 0 {
 			return entries[0].Next
@@ -101,6 +115,11 @@ func (bm *BuildIDManager) IsRunning() bool {
 	bm.mutex.RLock()
 	defer bm.mutex.RUnlock()
 	return bm.isRunning
+}
+
+// IsEnabled returns whether cron is enabled
+func (bm *BuildIDManager) IsEnabled() bool {
+	return bm.config.CronEnabled
 }
 
 // GetSchedule returns the current cron schedule

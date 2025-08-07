@@ -6,12 +6,20 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/latoulicious/HKTM/internal/config"
 	"github.com/latoulicious/HKTM/pkg/uma"
 )
 
 var umaClient = uma.NewClient()
 var navigationManager = uma.GetNavigationManager()
-var gametoraClient = uma.NewGametoraClient()
+var gametoraClient *uma.GametoraClient
+
+// InitializeGametoraClient initializes the global gametora client with configuration
+func InitializeGametoraClient(cfg interface{}) {
+	if config, ok := cfg.(*config.Config); ok {
+		gametoraClient = uma.NewGametoraClient(config)
+	}
+}
 
 // UmaCommand handles Uma Musume related commands
 func UmaCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {

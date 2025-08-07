@@ -40,6 +40,9 @@ func main() {
 	// Set the presence manager in the commands package
 	commands.SetPresenceManager(presenceManager)
 
+	// Initialize gametora client with config
+	commands.InitializeGametoraClient(cfg)
+
 	// Register the message handler
 	dg.AddHandler(handlers.MessageHandler)
 

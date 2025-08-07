@@ -9,6 +9,9 @@ import (
 type Config struct {
 	DiscordToken string
 	OwnerID      string
+	// Cron configuration
+	CronEnabled  bool
+	CronSchedule string
 }
 
 var (
@@ -33,8 +36,21 @@ func LoadConfig() (*Config, error) {
 		return nil, ErrOwnerIDNotSet
 	}
 
+	// Cron configuration with defaults
+	cronEnabled := true // Default to enabled
+	if enabled := os.Getenv("CRON_ENABLED"); enabled != "" {
+		cronEnabled = enabled == "true" || enabled == "1"
+	}
+
+	cronSchedule := "0 0 */6 * * *" // Default: every 6 hours
+	if schedule := os.Getenv("CRON_SCHEDULE"); schedule != "" {
+		cronSchedule = schedule
+	}
+
 	return &Config{
 		DiscordToken: discordToken,
 		OwnerID:      ownerID,
+		CronEnabled:  cronEnabled,
+		CronSchedule: cronSchedule,
 	}, nil
 }

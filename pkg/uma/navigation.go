@@ -316,11 +316,13 @@ func (scnm *SupportCardNavigationManager) HandleSupportCardReaction(s *discordgo
 		}
 	case "🔄":
 		// Refresh (re-search)
-		client := NewGametoraClient()
-		result := client.SearchSimplifiedSupportCard(state.Query)
-		if result.Found && len(result.SupportCards) > 0 {
-			state.SupportCards = result.SupportCards
-			state.CurrentIndex = 0
+		client := GetGametoraClient()
+		if client != nil {
+			result := client.SearchSimplifiedSupportCard(state.Query)
+			if result.Found && len(result.SupportCards) > 0 {
+				state.SupportCards = result.SupportCards
+				state.CurrentIndex = 0
+			}
 		}
 	}
 
@@ -424,11 +426,13 @@ func (scnm *SupportCardNavigationManager) createSupportCardEmbed(supportCard *Si
 
 	// Add card image if available
 	if supportCard.URLName != "" {
-		client := NewGametoraClient()
-		imageURL := client.GetSupportCardImageURL(supportCard.URLName)
-		if imageURL != "" {
-			embed.Image = &discordgo.MessageEmbedImage{
-				URL: imageURL,
+		client := GetGametoraClient()
+		if client != nil {
+			imageURL := client.GetSupportCardImageURL(supportCard.URLName)
+			if imageURL != "" {
+				embed.Image = &discordgo.MessageEmbedImage{
+					URL: imageURL,
+				}
 			}
 		}
 	}
