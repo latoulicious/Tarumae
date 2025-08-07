@@ -124,10 +124,11 @@ type SimplifiedSupportCard struct {
 
 // SimplifiedGametoraSearchResult represents the result of a simplified Gametora search
 type SimplifiedGametoraSearchResult struct {
-	Found       bool
-	SupportCard *SimplifiedSupportCard
-	Error       error
-	Query       string
+	Found        bool
+	SupportCard  *SimplifiedSupportCard
+	SupportCards []*SimplifiedSupportCard // Multiple cards for the same character
+	Error        error
+	Query        string
 }
 
 // NewGametoraClient creates a new Gametora API client
@@ -278,9 +279,9 @@ func (c *GametoraClient) SearchSimplifiedSupportCard(query string) *SimplifiedGa
 		return result
 	}
 
-	// Find the best match
+	// Find all matches
 	query = strings.ToLower(strings.TrimSpace(query))
-	var bestMatch *struct {
+	var allMatches []struct {
 		URLName     string  `json:"url_name"`
 		SupportID   int     `json:"support_id"`
 		CharID      int     `json:"char_id"`
@@ -326,8 +327,8 @@ func (c *GametoraClient) SearchSimplifiedSupportCard(query string) *SimplifiedGa
 				Value4 int `json:"value_4,omitempty"`
 			} `json:"effects"`
 		} `json:"unique,omitempty"`
+		Score int
 	}
-	var bestScore int = -1
 
 	for _, support := range supportsResp.PageProps.SupportData {
 		urlName := strings.ToLower(support.URLName)
@@ -355,14 +356,80 @@ func (c *GametoraClient) SearchSimplifiedSupportCard(query string) *SimplifiedGa
 			}
 		}
 
-		// Update best match if this score is higher
-		if score > bestScore {
-			bestScore = score
-			bestMatch = &support
+		// Add to matches if score is good enough
+		if score > 0 {
+			allMatches = append(allMatches, struct {
+				URLName     string  `json:"url_name"`
+				SupportID   int     `json:"support_id"`
+				CharID      int     `json:"char_id"`
+				CharName    string  `json:"char_name"`
+				NameJp      string  `json:"name_jp"`
+				NameKo      string  `json:"name_ko"`
+				NameTw      string  `json:"name_tw"`
+				Rarity      int     `json:"rarity"`
+				Type        string  `json:"type"`
+				Obtained    string  `json:"obtained"`
+				Release     string  `json:"release"`
+				ReleaseKo   string  `json:"release_ko,omitempty"`
+				ReleaseZhTw string  `json:"release_zh_tw,omitempty"`
+				ReleaseEn   string  `json:"release_en,omitempty"`
+				Effects     [][]int `json:"effects"`
+				Hints       struct {
+					HintSkills []struct {
+						ID     int      `json:"id"`
+						Type   []string `json:"type"`
+						NameEn string   `json:"name_en"`
+						IconID int      `json:"iconid"`
+					} `json:"hint_skills"`
+					HintOthers []struct {
+						HintType  int `json:"hint_type"`
+						HintValue int `json:"hint_value"`
+					} `json:"hint_others"`
+				} `json:"hints"`
+				EventSkills []struct {
+					ID     int      `json:"id"`
+					Type   []string `json:"type"`
+					NameEn string   `json:"name_en"`
+					Rarity int      `json:"rarity"`
+					IconID int      `json:"iconid"`
+				} `json:"event_skills"`
+				Unique *struct {
+					Level   int `json:"level"`
+					Effects []struct {
+						Type   int `json:"type"`
+						Value  int `json:"value"`
+						Value1 int `json:"value_1,omitempty"`
+						Value2 int `json:"value_2,omitempty"`
+						Value3 int `json:"value_3,omitempty"`
+						Value4 int `json:"value_4,omitempty"`
+					} `json:"effects"`
+				} `json:"unique,omitempty"`
+				Score int
+			}{
+				URLName:     support.URLName,
+				SupportID:   support.SupportID,
+				CharID:      support.CharID,
+				CharName:    support.CharName,
+				NameJp:      support.NameJp,
+				NameKo:      support.NameKo,
+				NameTw:      support.NameTw,
+				Rarity:      support.Rarity,
+				Type:        support.Type,
+				Obtained:    support.Obtained,
+				Release:     support.Release,
+				ReleaseKo:   support.ReleaseKo,
+				ReleaseZhTw: support.ReleaseZhTw,
+				ReleaseEn:   support.ReleaseEn,
+				Effects:     support.Effects,
+				Hints:       support.Hints,
+				EventSkills: support.EventSkills,
+				Unique:      support.Unique,
+				Score:       score,
+			})
 		}
 	}
 
-	if bestMatch == nil {
+	if len(allMatches) == 0 {
 		result := &SimplifiedGametoraSearchResult{
 			Found: false,
 			Query: query,
@@ -371,32 +438,48 @@ func (c *GametoraClient) SearchSimplifiedSupportCard(query string) *SimplifiedGa
 		return result
 	}
 
-	// Convert to simplified structure
-	simplifiedCard := &SimplifiedSupportCard{
-		URLName:     bestMatch.URLName,
-		SupportID:   bestMatch.SupportID,
-		CharID:      bestMatch.CharID,
-		CharName:    bestMatch.CharName,
-		NameJp:      bestMatch.NameJp,
-		NameKo:      bestMatch.NameKo,
-		NameTw:      bestMatch.NameTw,
-		Rarity:      bestMatch.Rarity,
-		Type:        bestMatch.Type,
-		Obtained:    bestMatch.Obtained,
-		Release:     bestMatch.Release,
-		ReleaseKo:   bestMatch.ReleaseKo,
-		ReleaseZhTw: bestMatch.ReleaseZhTw,
-		ReleaseEn:   bestMatch.ReleaseEn,
-		Effects:     bestMatch.Effects,
-		Hints:       bestMatch.Hints,
-		EventSkills: bestMatch.EventSkills,
-		Unique:      bestMatch.Unique,
+	// Sort matches by score (highest first) and then by rarity (highest first)
+	// This ensures we get the best match first, and if scores are equal, highest rarity wins
+	for i := 0; i < len(allMatches)-1; i++ {
+		for j := i + 1; j < len(allMatches); j++ {
+			if allMatches[i].Score < allMatches[j].Score ||
+				(allMatches[i].Score == allMatches[j].Score && allMatches[i].Rarity < allMatches[j].Rarity) {
+				allMatches[i], allMatches[j] = allMatches[j], allMatches[i]
+			}
+		}
+	}
+
+	// Convert all matches to simplified structure
+	var simplifiedCards []*SimplifiedSupportCard
+	for _, match := range allMatches {
+		simplifiedCard := &SimplifiedSupportCard{
+			URLName:     match.URLName,
+			SupportID:   match.SupportID,
+			CharID:      match.CharID,
+			CharName:    match.CharName,
+			NameJp:      match.NameJp,
+			NameKo:      match.NameKo,
+			NameTw:      match.NameTw,
+			Rarity:      match.Rarity,
+			Type:        match.Type,
+			Obtained:    match.Obtained,
+			Release:     match.Release,
+			ReleaseKo:   match.ReleaseKo,
+			ReleaseZhTw: match.ReleaseZhTw,
+			ReleaseEn:   match.ReleaseEn,
+			Effects:     match.Effects,
+			Hints:       match.Hints,
+			EventSkills: match.EventSkills,
+			Unique:      match.Unique,
+		}
+		simplifiedCards = append(simplifiedCards, simplifiedCard)
 	}
 
 	result := &SimplifiedGametoraSearchResult{
-		Found:       true,
-		SupportCard: simplifiedCard,
-		Query:       query,
+		Found:        true,
+		SupportCard:  simplifiedCards[0], // Best match as primary
+		SupportCards: simplifiedCards,    // All matches
+		Query:        query,
 	}
 
 	c.setCache(cacheKey, result)

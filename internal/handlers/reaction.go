@@ -20,6 +20,10 @@ func ReactionAddHandler(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
 	// Handle Uma character image navigation
 	navigationManager := uma.GetNavigationManager()
 	navigationManager.HandleReaction(s, r)
+
+	// Handle support card version navigation
+	supportCardNavManager := uma.GetSupportCardNavigationManager()
+	supportCardNavManager.HandleSupportCardReaction(s, r)
 }
 
 // ReactionRemoveHandler handles reaction remove events (for cleanup)

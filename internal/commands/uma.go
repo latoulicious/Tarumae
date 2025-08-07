@@ -300,14 +300,60 @@ func SkillsCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []stri
 		return
 	}
 
+	// Get navigation manager
+	supportCardNavManager := uma.GetSupportCardNavigationManager()
+
 	// Create success embed
-	embed := createSimplifiedSkillsEmbed(result.SupportCard)
+	var embed *discordgo.MessageEmbed
+	if len(result.SupportCards) > 1 {
+		// Use navigation embed for multiple versions
+		embed = supportCardNavManager.CreateSupportCardEmbed(result.SupportCard, result.SupportCards, 0)
+	} else {
+		// Use simple embed for single version
+		embed = createSimplifiedSkillsEmbed(result.SupportCard)
+	}
 
 	// Send the embed
-	_, err := s.ChannelMessageSendEmbed(m.ChannelID, embed)
+	msg, err := s.ChannelMessageSendEmbed(m.ChannelID, embed)
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "❌ Failed to send support card skills.")
 		return
+	}
+
+	// Register navigation if there are multiple versions
+	if len(result.SupportCards) > 1 {
+		supportCardNavManager.RegisterSupportCardNavigation(msg.ID, result.SupportCards, m.ChannelID, query)
+
+		// Add navigation emotes based on number of versions
+		reactions := []string{"🔄"} // Always add refresh
+
+		// Add number reactions for versions (up to 9)
+		for i := 1; i <= len(result.SupportCards) && i <= 9; i++ {
+			switch i {
+			case 1:
+				reactions = append(reactions, "1️⃣")
+			case 2:
+				reactions = append(reactions, "2️⃣")
+			case 3:
+				reactions = append(reactions, "3️⃣")
+			case 4:
+				reactions = append(reactions, "4️⃣")
+			case 5:
+				reactions = append(reactions, "5️⃣")
+			case 6:
+				reactions = append(reactions, "6️⃣")
+			case 7:
+				reactions = append(reactions, "7️⃣")
+			case 8:
+				reactions = append(reactions, "8️⃣")
+			case 9:
+				reactions = append(reactions, "9️⃣")
+			}
+		}
+
+		for _, reaction := range reactions {
+			s.MessageReactionAdd(m.ChannelID, msg.ID, reaction)
+		}
 	}
 }
 

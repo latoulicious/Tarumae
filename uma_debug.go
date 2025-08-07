@@ -41,6 +41,29 @@ func main() {
 		imageURL := client.GetSupportCardImageURL(result.SupportCard.URLName)
 		fmt.Printf("   Image URL: %s\n", imageURL)
 
+		// Show all versions if multiple found
+		if len(result.SupportCards) > 1 {
+			fmt.Printf("\n📋 All versions found (%d):\n", len(result.SupportCards))
+			for i, card := range result.SupportCards {
+				rarityText := "R"
+				switch card.Rarity {
+				case 2:
+					rarityText = "SR"
+				case 3:
+					rarityText = "SSR"
+				}
+				fmt.Printf("  %d. %s (%s) - ID: %d\n", i+1, card.NameJp, rarityText, card.SupportID)
+			}
+
+			// Test navigation embed creation
+			fmt.Printf("\n🧭 Testing navigation embed for version 1 (SSR):\n")
+			navManager := uma.GetSupportCardNavigationManager()
+			navEmbed := navManager.CreateSupportCardEmbed(result.SupportCards[0], result.SupportCards, 0)
+			fmt.Printf("  Title: %s\n", navEmbed.Title)
+			fmt.Printf("  Footer: %s\n", navEmbed.Footer.Text)
+			fmt.Printf("  Fields: %d\n", len(navEmbed.Fields))
+		}
+
 		// Show support hints
 		if len(result.SupportCard.Hints.HintSkills) > 0 {
 			fmt.Printf("\n💡 Support Hints (%d):\n", len(result.SupportCard.Hints.HintSkills))
