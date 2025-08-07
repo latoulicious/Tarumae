@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
@@ -13,6 +14,7 @@ import (
 	"github.com/latoulicious/HKTM/internal/handlers"
 	"github.com/latoulicious/HKTM/internal/presence"
 	"github.com/latoulicious/HKTM/pkg/common"
+	"github.com/latoulicious/HKTM/pkg/database"
 	"github.com/latoulicious/HKTM/pkg/uma"
 )
 
@@ -44,8 +46,21 @@ func main() {
 	// Set the presence manager in the commands package
 	commands.SetPresenceManager(presenceManager)
 
+	// Initialize database for caching
+	db, err := database.NewDatabase("uma_cache.db")
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer db.Close()
+
+	// Start cache cleanup goroutine
+	db.StartCacheCleanup(1 * time.Hour)
+
 	// Initialize gametora client with config
 	commands.InitializeGametoraClient(cfg)
+
+	// Initialize UMA commands with database
+	commands.InitializeUmaCommands(db)
 
 	// Register the message handler
 	dg.AddHandler(handlers.MessageHandler)
