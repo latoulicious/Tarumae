@@ -12,6 +12,7 @@ import (
 	"github.com/latoulicious/HKTM/internal/config"
 	"github.com/latoulicious/HKTM/internal/handlers"
 	"github.com/latoulicious/HKTM/internal/presence"
+	"github.com/latoulicious/HKTM/pkg/common"
 	"github.com/latoulicious/HKTM/pkg/uma"
 )
 
@@ -21,6 +22,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
+
+	// Check environment variables
+	common.CheckPersonalUse()
 
 	// Load configuration
 	cfg, err := config.LoadConfig()
@@ -68,6 +72,8 @@ func main() {
 	// Start idle monitor
 	idleMonitor := commands.GetIdleMonitor()
 	idleMonitor(dg)
+
+	common.EnforceGuildAndDev(cfg.OwnerID)
 
 	log.Println("Bot is running. Press CTRL-C to exit.")
 	// Wait here until CTRL-C or other term signal is received.
