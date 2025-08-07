@@ -327,37 +327,24 @@ func (c *GametoraClient) SearchSimplifiedSupportCard(query string) *SimplifiedGa
 				Value4 int `json:"value_4,omitempty"`
 			} `json:"effects"`
 		} `json:"unique,omitempty"`
-		Score int
 	}
 
 	for _, support := range supportsResp.PageProps.SupportData {
 		urlName := strings.ToLower(support.URLName)
-		charName := strings.ToLower(support.CharName)
 
-		// Calculate match score (higher is better)
-		score := 0
+		// Simple URL name matching - check if all query words are in the URL name
+		queryWords := strings.Fields(query)
+		allWordsMatch := true
 
-		// Exact matches get highest priority
-		if urlName == query || charName == query {
-			score = 100
-		} else if strings.HasPrefix(urlName, query) || strings.HasPrefix(charName, query) {
-			score = 80
-		} else if strings.Contains(urlName, query) || strings.Contains(charName, query) {
-			score = 60
-		} else {
-			// Try word-by-word matching
-			queryWords := strings.Fields(query)
-			for _, word := range queryWords {
-				if len(word) > 2 { // Only consider words longer than 2 characters
-					if strings.Contains(urlName, word) || strings.Contains(charName, word) {
-						score += 10
-					}
-				}
+		for _, word := range queryWords {
+			if len(word) > 2 && !strings.Contains(urlName, word) {
+				allWordsMatch = false
+				break
 			}
 		}
 
-		// Add to matches if score is good enough
-		if score > 0 {
+		// Only add if all words match in the URL name
+		if allWordsMatch && len(queryWords) > 0 {
 			allMatches = append(allMatches, struct {
 				URLName     string  `json:"url_name"`
 				SupportID   int     `json:"support_id"`
@@ -404,7 +391,6 @@ func (c *GametoraClient) SearchSimplifiedSupportCard(query string) *SimplifiedGa
 						Value4 int `json:"value_4,omitempty"`
 					} `json:"effects"`
 				} `json:"unique,omitempty"`
-				Score int
 			}{
 				URLName:     support.URLName,
 				SupportID:   support.SupportID,
@@ -424,7 +410,6 @@ func (c *GametoraClient) SearchSimplifiedSupportCard(query string) *SimplifiedGa
 				Hints:       support.Hints,
 				EventSkills: support.EventSkills,
 				Unique:      support.Unique,
-				Score:       score,
 			})
 		}
 	}
@@ -438,12 +423,10 @@ func (c *GametoraClient) SearchSimplifiedSupportCard(query string) *SimplifiedGa
 		return result
 	}
 
-	// Sort matches by score (highest first) and then by rarity (highest first)
-	// This ensures we get the best match first, and if scores are equal, highest rarity wins
+	// Sort matches by rarity (highest first) since we no longer use scores
 	for i := 0; i < len(allMatches)-1; i++ {
 		for j := i + 1; j < len(allMatches); j++ {
-			if allMatches[i].Score < allMatches[j].Score ||
-				(allMatches[i].Score == allMatches[j].Score && allMatches[i].Rarity < allMatches[j].Rarity) {
+			if allMatches[i].Rarity < allMatches[j].Rarity {
 				allMatches[i], allMatches[j] = allMatches[j], allMatches[i]
 			}
 		}

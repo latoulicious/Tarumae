@@ -381,7 +381,7 @@ func (scnm *SupportCardNavigationManager) createSupportCardEmbed(supportCard *Si
 	}
 
 	// Build footer text
-	footerText := "Data from Gametora API | Hokko Tarumae"
+	footerText := "Data from Gametora API"
 	if len(allCards) > 1 {
 		rarityText := "R"
 		switch supportCard.Rarity {
@@ -390,7 +390,7 @@ func (scnm *SupportCardNavigationManager) createSupportCardEmbed(supportCard *Si
 		case 3:
 			rarityText = "SSR"
 		}
-		footerText = fmt.Sprintf("Data from Gametora API | Hokko Tarumae | %s Version (%d of %d)", rarityText, currentIndex+1, len(allCards))
+		footerText = fmt.Sprintf("Data from Gametora API | %s Version (%d of %d)", rarityText, currentIndex+1, len(allCards))
 	}
 
 	// Create embed
