@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,7 @@ var (
 
 // SetPresenceManager sets the global presence manager
 func SetPresenceManager(pm *presence.PresenceManager) {
+	log.Printf("Setting presence manager: %v", pm)
 	presenceManager = pm
 }
 
@@ -66,21 +68,12 @@ func startIdleMonitor(s *discordgo.Session) {
 					// Get queue for this guild
 					queue := getQueue(guildID)
 					if queue != nil && queue.IsPlaying() {
-						// Stop the queue
-						queue.SetPlaying(false)
-						if pipeline := queue.GetPipeline(); pipeline != nil {
-							pipeline.Stop()
-						}
+						// Stop the queue and clean up resources
+						queue.StopAndCleanup()
 
 						// Clear presence
 						if presenceManager != nil {
 							presenceManager.ClearMusicPresence()
-						}
-
-						// Disconnect from voice
-						vc := queue.GetVoiceConnection()
-						if vc != nil {
-							vc.Disconnect()
 						}
 
 						// Find a text channel to send the embed
@@ -280,9 +273,14 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, args []string)
 	description := fmt.Sprintf("✅ Added **%s** to queue (Position: %d)", title, queueSize)
 	sendEmbedMessage(s, m.ChannelID, "🎵 Song Added", description, 0x00ff00)
 
-	// If nothing is currently playing, start playing
-	if !queue.IsPlaying() {
+	// Check if we should start playing - only if the queue can start playing
+	if queue.CanStartPlaying() {
+		log.Printf("Starting playback for guild %s - queue size: %d, isPlaying: %v, hasPipeline: %v",
+			guildID, queueSize, queue.IsPlaying(), queue.HasActivePipeline())
 		startNextInQueue(s, m, queue)
+	} else {
+		log.Printf("Song added to queue for guild %s but not starting playback - queue size: %d, isPlaying: %v, hasPipeline: %v",
+			guildID, queueSize, queue.IsPlaying(), queue.HasActivePipeline())
 	}
 }
 
@@ -400,6 +398,12 @@ func showQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 // startNextInQueue starts playing the next song in the queue
 func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *common.MusicQueue) {
+	// Check if there's already an active pipeline and clean it up
+	if queue.HasActivePipeline() {
+		log.Printf("Cleaning up existing pipeline before starting new one")
+		queue.StopAndCleanup()
+	}
+
 	item := queue.Next()
 	if item == nil {
 		queue.SetPlaying(false)
@@ -430,19 +434,21 @@ func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *c
 
 	// Update bot presence to show current song
 	if presenceManager != nil {
+		log.Printf("Updating presence to show: %s", item.Title)
 		presenceManager.UpdateMusicPresence(item.Title)
+	} else {
+		log.Printf("Warning: presenceManager is nil, cannot update presence")
 	}
 
 	// Send now playing message with embed
-	description := fmt.Sprintf(item.Title)
+	description := item.Title
 	sendEmbedMessage(s, m.ChannelID, "🎶 Now Playing", description, 0x00ff00)
 
 	// Start streaming
 	err = pipeline.PlayStream(item.URL)
 	if err != nil {
 		sendEmbedMessage(s, m.ChannelID, "❌ Error", "Failed to start audio playback.", 0xff0000)
-		vc.Disconnect()
-		queue.SetPlaying(false)
+		queue.StopAndCleanup()
 		if presenceManager != nil {
 			presenceManager.ClearMusicPresence()
 		}
@@ -456,8 +462,14 @@ func startNextInQueue(s *discordgo.Session, m *discordgo.MessageCreate, queue *c
 			time.Sleep(1 * time.Second)
 		}
 
-		// Send song finished embed
-		sendSongFinishedEmbed(s, m.ChannelID, item.Title, item.RequestedBy)
+		// Only send song finished embed if the song wasn't skipped
+		if !queue.WasSkipped() {
+			sendSongFinishedEmbed(s, m.ChannelID, item.Title, item.RequestedBy)
+		}
+
+		// Clean up the pipeline
+		queue.SetPipeline(nil)
+		queue.SetSkipped(false) // Reset the skipped flag
 
 		// Play next song in queue
 		startNextInQueue(s, m, queue)

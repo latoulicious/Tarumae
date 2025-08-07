@@ -89,20 +89,26 @@ func (ap *AudioPipeline) streamLoop(streamURL string) {
 		ap.mu.Unlock()
 	}()
 
+	// Add a restart mutex to prevent multiple simultaneous restarts
+	var restartMutex sync.Mutex
+
 	for {
 		select {
 		case <-ap.ctx.Done():
 			log.Println("Audio pipeline context cancelled")
 			return
 		case <-ap.restartChan:
+			restartMutex.Lock()
 			if ap.restartCount >= ap.maxRestarts {
 				log.Printf("Max restart attempts (%d) reached, stopping", ap.maxRestarts)
 				ap.errorChan <- fmt.Errorf("max restarts exceeded")
+				restartMutex.Unlock()
 				return
 			}
 			ap.restartCount++
 			log.Printf("Restarting audio pipeline (attempt %d/%d)", ap.restartCount, ap.maxRestarts)
 			time.Sleep(2 * time.Second) // Brief delay before restart
+			restartMutex.Unlock()
 		}
 
 		err := ap.streamAudio(streamURL)
@@ -112,10 +118,13 @@ func (ap *AudioPipeline) streamLoop(streamURL string) {
 
 			// Check if we should restart
 			if ap.shouldRestart(err) {
+				restartMutex.Lock()
 				select {
 				case ap.restartChan <- struct{}{}:
 				default:
+					// If channel is full, don't send another restart signal
 				}
+				restartMutex.Unlock()
 				continue
 			}
 			return

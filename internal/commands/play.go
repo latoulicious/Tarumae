@@ -97,9 +97,14 @@ func PlayCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string
 	description := fmt.Sprintf("✅ Added **%s** to queue (Position: %d)", title, queueSize)
 	sendEmbedMessage(s, m.ChannelID, "🎵 Song Added", description, 0x00ff00)
 
-	// If nothing is currently playing, start playing
-	if !queue.IsPlaying() {
+	// Check if we should start playing - only if the queue can start playing
+	if queue.CanStartPlaying() {
+		log.Printf("Starting playback for guild %s - queue size: %d, isPlaying: %v, hasPipeline: %v",
+			guildID, queueSize, queue.IsPlaying(), queue.HasActivePipeline())
 		startNextInQueue(s, m, queue)
+	} else {
+		log.Printf("Song added to queue for guild %s but not starting playback - queue size: %d, isPlaying: %v, hasPipeline: %v",
+			guildID, queueSize, queue.IsPlaying(), queue.HasActivePipeline())
 	}
 }
 

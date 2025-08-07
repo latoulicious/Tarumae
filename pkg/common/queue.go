@@ -23,13 +23,14 @@ type QueueItem struct {
 
 // MusicQueue manages the queue for a specific guild
 type MusicQueue struct {
-	guildID   string
-	items     []*QueueItem
-	current   *QueueItem
-	isPlaying bool
-	mu        sync.RWMutex
-	voiceConn *discordgo.VoiceConnection
-	pipeline  *AudioPipeline
+	guildID    string
+	items      []*QueueItem
+	current    *QueueItem
+	isPlaying  bool
+	wasSkipped bool // Flag to track if current song was skipped
+	mu         sync.RWMutex
+	voiceConn  *discordgo.VoiceConnection
+	pipeline   *AudioPipeline
 }
 
 // NewMusicQueue creates a new music queue for a guild
@@ -151,6 +152,28 @@ func (mq *MusicQueue) IsPlaying() bool {
 	return mq.isPlaying
 }
 
+// HasActivePipeline returns whether there's an active pipeline
+func (mq *MusicQueue) HasActivePipeline() bool {
+	mq.mu.RLock()
+	defer mq.mu.RUnlock()
+	return mq.pipeline != nil && mq.pipeline.IsPlaying()
+}
+
+// IsCurrentlyPlaying returns whether there's actually active playback
+func (mq *MusicQueue) IsCurrentlyPlaying() bool {
+	mq.mu.RLock()
+	defer mq.mu.RUnlock()
+	return mq.isPlaying && mq.pipeline != nil && mq.pipeline.IsPlaying()
+}
+
+// CanStartPlaying returns whether the queue is in a valid state to start playing
+func (mq *MusicQueue) CanStartPlaying() bool {
+	mq.mu.RLock()
+	defer mq.mu.RUnlock()
+	// Can start if not currently playing and either no pipeline or pipeline is not playing
+	return !mq.isPlaying || mq.pipeline == nil || !mq.pipeline.IsPlaying()
+}
+
 // SetVoiceConnection sets the voice connection for this queue
 func (mq *MusicQueue) SetVoiceConnection(vc *discordgo.VoiceConnection) {
 	mq.mu.Lock()
@@ -177,4 +200,36 @@ func (mq *MusicQueue) GetPipeline() *AudioPipeline {
 	mq.mu.RLock()
 	defer mq.mu.RUnlock()
 	return mq.pipeline
+}
+
+// SetSkipped sets the skipped flag
+func (mq *MusicQueue) SetSkipped(skipped bool) {
+	mq.mu.Lock()
+	defer mq.mu.Unlock()
+	mq.wasSkipped = skipped
+}
+
+// WasSkipped returns whether the current song was skipped
+func (mq *MusicQueue) WasSkipped() bool {
+	mq.mu.RLock()
+	defer mq.mu.RUnlock()
+	return mq.wasSkipped
+}
+
+// StopAndCleanup safely stops the current pipeline and cleans up resources
+func (mq *MusicQueue) StopAndCleanup() {
+	mq.mu.Lock()
+	defer mq.mu.Unlock()
+
+	if mq.pipeline != nil {
+		mq.pipeline.Stop()
+		mq.pipeline = nil
+	}
+
+	if mq.voiceConn != nil {
+		mq.voiceConn.Disconnect()
+		mq.voiceConn = nil
+	}
+
+	mq.isPlaying = false
 }

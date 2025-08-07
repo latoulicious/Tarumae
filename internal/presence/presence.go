@@ -73,6 +73,8 @@ func (pm *PresenceManager) UpdateDefaultPresence() {
 
 // UpdateMusicPresence updates the bot's presence to show currently playing music
 func (pm *PresenceManager) UpdateMusicPresence(songTitle string) {
+	log.Printf("UpdateMusicPresence called with song: %s", songTitle)
+
 	presence := &discordgo.UpdateStatusData{
 		Status: "online",
 		Activities: []*discordgo.Activity{
@@ -86,6 +88,8 @@ func (pm *PresenceManager) UpdateMusicPresence(songTitle string) {
 	err := pm.session.UpdateStatusComplex(*presence)
 	if err != nil {
 		log.Printf("Failed to update music presence: %v", err)
+	} else {
+		log.Printf("Successfully updated music presence to: %s", songTitle)
 	}
 
 	presenceMutex.Lock()

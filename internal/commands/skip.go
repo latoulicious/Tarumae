@@ -25,8 +25,10 @@ func SkipCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 		requestedBy = currentSong.RequestedBy
 	}
 
-	// Stop current pipeline
+	// Stop current pipeline and mark as skipped
 	if pipeline := queue.GetPipeline(); pipeline != nil {
+		// Set a flag to indicate this was a skip operation
+		queue.SetSkipped(true)
 		pipeline.Stop()
 	}
 
