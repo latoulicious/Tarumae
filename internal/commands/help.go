@@ -11,26 +11,26 @@ import (
 func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Create embed
 	embed := &discordgo.MessageEmbed{
-		Title:       "Hokko Tarumae",
-		Description: "Here are all the available commands for the bot:",
-		Color:       0x00ff00, // Green color
-		Timestamp:   time.Now().Format(time.RFC3339),
+		Title: "Here are all the available commands for the bot:",
+		// Description: "Here are all the available commands for the bot:",
+		Color:     0x00ff00, // Green color
+		Timestamp: time.Now().Format(time.RFC3339),
 		Footer: &discordgo.MessageEmbedFooter{
-			Text:    "Hokko Tarumae | Created by latoulicious | 2025",
-			IconURL: "https://cdn.discordapp.com/emojis/1198008186138021888.webp?size=96", // Replace with custom image URL
+			Text:    "Hokko Tarumae",
+			IconURL: "https://cdn.discordapp.com/attachments/1378031194356060280/1402891387061403718/footer.gif?ex=68958feb&is=68943e6b&hm=21cdbed6dde8e956c55af9345d23755a617cf20f9f098fde6369a73164b67ca0&", // Replace with custom image URL
 		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name: "Music Commands",
 				Value: strings.Join([]string{
 					"• `!play <url>` / `!p <url>` - Play a YouTube video by URL",
-					"• `!p search <keywords>` - Search and play a YouTube video",
+					"• `!p <keywords>` - Search and play a YouTube video",
 					"• `!nowplaying` / `!np` - Show the currently playing track",
 					"• `!queue add <url>` - Add a YouTube video to the queue",
 					"• `!queue list` - List the current queue",
-					"• `!queue remove <index>` - Remove a track from the queue",
-					"• `!clear` - Clear the entire queue (confirmation for non-admins)",
-					"• `!shuffle` - Shuffle the queue (announces new top song for large queues)",
+					"• `!queue remove <position>` - Remove a track from the queue",
+					"• `!clear` - Clear the entire queue",
+					"• `!shuffle` - Shuffle the queue",
 					"• `!pause` - Pause the current playback",
 					"• `!resume` - Resume paused playback",
 					"• `!skip` - Skip the currently playing track",
@@ -50,13 +50,13 @@ func ShowHelpCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 			{
 				Name: "Moderation Commands",
 				Value: strings.Join([]string{
-					"• `!delete <number>` - Delete the specified number of recent messages (requires Manage Messages permission)",
+					"• `!delete <number>` - Delete the specified number of recent messages",
 				}, "\n"),
 				Inline: false,
 			},
 			{
 				Name:   "Fun Commands",
-				Value:  "• `!gremlin` - Post a random gremlin image\n• `!uma char <name>` - Search for Uma Musume characters (with image navigation)\n• `!uma support <name>` - Search for Uma Musume support cards\n• `!uma skills <name>` - Get skills for a support card (Gametora API)",
+				Value:  "• `!gremlin` - Post a random gremlin image\n• `!uma char <name>` - Search for Uma Musume characters\n• `!uma support <name>` - Search for Uma Musume support cards\n• `!uma skills <name>` - Get skills for a support card",
 				Inline: false,
 			},
 			{

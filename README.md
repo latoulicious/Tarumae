@@ -22,10 +22,10 @@ High-performance Discord music bot written in Go, designed to stream audio direc
 The audio streaming flow is purpose-built for performance and clarity:
 
 ```mermaid
-graph LR
-  A[yt-dlp] --> B[FFmpeg (PCM)]
-  B --> C[gopus (Opus Encoder)]
-  C --> D[Discord Voice Channel]
+graph LR;
+    A["yt-dlp"] --> B["FFmpeg (PCM)"];
+    B --> C["gopus (Opus Encoder)"];
+    C --> D["Discord Voice Channel"];
 ```
 
 ### Pipeline Breakdown:

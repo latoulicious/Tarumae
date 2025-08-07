@@ -28,13 +28,22 @@ func AboutCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 		Color:       0x00ff00, // Green color
 		Timestamp:   time.Now().Format(time.RFC3339),
 		Footer: &discordgo.MessageEmbedFooter{
-			Text: "Created by latoulicious | 2025",
-			// IconURL: "https://cdn.discordapp.com/emojis/1198008186138021888.webp?size=96",
+			Text: "Created and maintained by latoulicious",
 		},
 		Fields: []*discordgo.MessageEmbedField{
 			{
-				Name:   "Bot Name & Version",
-				Value:  "Hokko Tarumae v1.0.0",
+				Name:   "Bot Name",
+				Value:  "Hokko Tarumae",
+				Inline: true,
+			},
+			{
+				Name:   "Version",
+				Value:  "v1.0.0",
+				Inline: true,
+			},
+			{
+				Name:   "Repository",
+				Value:  "[GitHub](https://github.com/latoulicious/HKTM)",
 				Inline: true,
 			},
 			{
@@ -48,6 +57,11 @@ func AboutCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 				Inline: true,
 			},
 			{
+				Name:   "Goroutines",
+				Value:  fmt.Sprintf("%d", runtime.NumGoroutine()),
+				Inline: true,
+			},
+			{
 				Name:   "Go Version",
 				Value:  runtime.Version(),
 				Inline: true,
@@ -58,8 +72,8 @@ func AboutCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 				Inline: true,
 			},
 			{
-				Name:   "Goroutines",
-				Value:  fmt.Sprintf("%d", runtime.NumGoroutine()),
+				Name:   "Ping",
+				Value:  fmt.Sprintf("%dms", s.HeartbeatLatency().Milliseconds()),
 				Inline: true,
 			},
 		},
