@@ -131,6 +131,13 @@ func (dm *databaseManager) Close() error {
 		dm.backupTicker.Stop()
 	}
 
+	// Close metrics repository and its components
+	if dm.metricsRepository != nil {
+		if err := dm.metricsRepository.Close(); err != nil {
+			log.Printf("Error closing metrics repository: %v", err)
+		}
+	}
+
 	// Close connection pool if exists
 	if dm.connectionPool != nil {
 		if err := dm.connectionPool.Close(); err != nil {

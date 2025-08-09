@@ -73,6 +73,17 @@ type MetricsRepository interface {
 	// Maintenance
 	CleanExpiredMetrics(ctx context.Context, retentionPeriod time.Duration) error
 	GetMetricsStats(ctx context.Context) (*MetricsStats, error)
+
+	// Enhanced batch processing
+	GetBatchProcessorStats() (*BatchProcessorStats, error)
+	FlushPendingMetrics() error
+
+	// Enhanced retention management
+	GetRetentionStats() (*RetentionStats, error)
+	RunRetentionCleanup(ctx context.Context) (*RetentionStats, error)
+
+	// Lifecycle management
+	Close() error
 }
 
 // MigrationManager defines the interface for database migrations

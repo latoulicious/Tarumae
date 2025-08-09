@@ -14,6 +14,10 @@ type metricsRepository struct {
 	db     *sql.DB
 	config *DatabaseConfig
 
+	// Enhanced components
+	batchProcessor   *MetricsBatchProcessor
+	retentionManager *MetricsRetentionManager
+
 	// Prepared statements for performance
 	insertMetricStmt  *sql.Stmt
 	insertSessionStmt *sql.Stmt
@@ -40,6 +44,27 @@ func NewMetricsRepository(db *sql.DB, config *DatabaseConfig) (MetricsRepository
 	// Prepare statements
 	if err := repo.prepareStatements(); err != nil {
 		return nil, fmt.Errorf("failed to prepare statements: %w", err)
+	}
+
+	// Initialize batch processor
+	batchProcessor, err := NewMetricsBatchProcessor(db, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create batch processor: %w", err)
+	}
+	repo.batchProcessor = batchProcessor
+
+	// Initialize retention manager
+	retentionManager := NewMetricsRetentionManager(db, config)
+	repo.retentionManager = retentionManager
+
+	// Start background components
+	if err := repo.batchProcessor.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start batch processor: %w", err)
+	}
+
+	if err := repo.retentionManager.Start(); err != nil {
+		repo.batchProcessor.Stop() // Cleanup on failure
+		return nil, fmt.Errorf("failed to start retention manager: %w", err)
 	}
 
 	return repo, nil
@@ -151,8 +176,19 @@ func (r *metricsRepository) prepareStatements() error {
 	return nil
 }
 
-// StoreMetric stores a single pipeline metric
+// StoreMetric stores a single pipeline metric using batch processing for better performance
 func (r *metricsRepository) StoreMetric(ctx context.Context, metric *PipelineMetric) error {
+	// Use batch processor if available for better performance
+	if r.batchProcessor != nil {
+		return r.batchProcessor.AddMetric(metric)
+	}
+
+	// Fallback to direct storage if batch processor is not available
+	return r.storeMetricDirect(ctx, metric)
+}
+
+// storeMetricDirect stores a single pipeline metric directly to the database
+func (r *metricsRepository) storeMetricDirect(ctx context.Context, metric *PipelineMetric) error {
 	tagsJSON, err := json.Marshal(metric.Tags)
 	if err != nil {
 		return fmt.Errorf("failed to marshal tags: %w", err)
@@ -180,8 +216,23 @@ func (r *metricsRepository) StoreMetric(ctx context.Context, metric *PipelineMet
 	return nil
 }
 
-// StoreBatchMetrics stores multiple pipeline metrics efficiently
+// StoreBatchMetrics stores multiple pipeline metrics efficiently using batch processing
 func (r *metricsRepository) StoreBatchMetrics(ctx context.Context, metrics []*PipelineMetric) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	// Use batch processor if available for better performance
+	if r.batchProcessor != nil {
+		return r.batchProcessor.AddMetrics(metrics)
+	}
+
+	// Fallback to direct batch storage if batch processor is not available
+	return r.storeBatchMetricsDirect(ctx, metrics)
+}
+
+// storeBatchMetricsDirect stores multiple pipeline metrics directly to the database
+func (r *metricsRepository) storeBatchMetricsDirect(ctx context.Context, metrics []*PipelineMetric) error {
 	if len(metrics) == 0 {
 		return nil
 	}
@@ -771,4 +822,108 @@ func (r *metricsRepository) buildEventQuery(query *EventQuery) (string, []interf
 	}
 
 	return sqlQuery, args
+}
+
+// Enhanced methods for batch processing and retention management
+
+// GetBatchProcessorStats returns statistics from the batch processor
+func (r *metricsRepository) GetBatchProcessorStats() (*BatchProcessorStats, error) {
+	if r.batchProcessor == nil {
+		return nil, fmt.Errorf("batch processor not initialized")
+	}
+	return r.batchProcessor.GetStats(), nil
+}
+
+// FlushPendingMetrics forces processing of any buffered metrics
+func (r *metricsRepository) FlushPendingMetrics() error {
+	if r.batchProcessor == nil {
+		return fmt.Errorf("batch processor not initialized")
+	}
+	return r.batchProcessor.Flush()
+}
+
+// GetRetentionStats returns statistics from the retention manager
+func (r *metricsRepository) GetRetentionStats() (*RetentionStats, error) {
+	if r.retentionManager == nil {
+		return nil, fmt.Errorf("retention manager not initialized")
+	}
+	return r.retentionManager.GetStats(), nil
+}
+
+// RunRetentionCleanup manually triggers a retention cleanup operation
+func (r *metricsRepository) RunRetentionCleanup(ctx context.Context) (*RetentionStats, error) {
+	if r.retentionManager == nil {
+		return nil, fmt.Errorf("retention manager not initialized")
+	}
+	return r.retentionManager.RunCleanup(ctx)
+}
+
+// Close gracefully shuts down the metrics repository and its components
+func (r *metricsRepository) Close() error {
+	var errors []string
+
+	// Stop batch processor
+	if r.batchProcessor != nil {
+		if err := r.batchProcessor.Stop(); err != nil {
+			errors = append(errors, fmt.Sprintf("batch processor stop error: %v", err))
+		}
+	}
+
+	// Stop retention manager
+	if r.retentionManager != nil {
+		if err := r.retentionManager.Stop(); err != nil {
+			errors = append(errors, fmt.Sprintf("retention manager stop error: %v", err))
+		}
+	}
+
+	// Close prepared statements
+	if r.insertMetricStmt != nil {
+		if err := r.insertMetricStmt.Close(); err != nil {
+			errors = append(errors, fmt.Sprintf("insert metric statement close error: %v", err))
+		}
+	}
+
+	if r.insertSessionStmt != nil {
+		if err := r.insertSessionStmt.Close(); err != nil {
+			errors = append(errors, fmt.Sprintf("insert session statement close error: %v", err))
+		}
+	}
+
+	if r.insertEventStmt != nil {
+		if err := r.insertEventStmt.Close(); err != nil {
+			errors = append(errors, fmt.Sprintf("insert event statement close error: %v", err))
+		}
+	}
+
+	if r.updateSessionStmt != nil {
+		if err := r.updateSessionStmt.Close(); err != nil {
+			errors = append(errors, fmt.Sprintf("update session statement close error: %v", err))
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("errors during close: %s", strings.Join(errors, "; "))
+	}
+
+	return nil
+}
+
+// Enhanced StoreMetric that uses batch processing for better performance
+func (r *metricsRepository) StoreMetricBatch(ctx context.Context, metric *PipelineMetric) error {
+	if r.batchProcessor == nil {
+		// Fallback to direct storage if batch processor is not available
+		return r.StoreMetric(ctx, metric)
+	}
+
+	return r.batchProcessor.AddMetric(metric)
+}
+
+// Enhanced StoreBatchMetrics that uses the batch processor
+func (r *metricsRepository) StoreBatchMetricsEnhanced(ctx context.Context, metrics []*PipelineMetric) error {
+	if r.batchProcessor == nil {
+		// Fallback to direct storage if batch processor is not available
+		return r.StoreBatchMetrics(ctx, metrics)
+	}
+
+	return r.batchProcessor.AddMetrics(metrics)
 }

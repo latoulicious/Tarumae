@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestMetricsRepository(t *testing.T) (MetricsRepository, func()) {
+func setupTestMetricsRepository(t *testing.T) (MetricsRepository, *sql.DB, func()) {
 	// Create temporary database
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
@@ -21,18 +21,21 @@ func setupTestMetricsRepository(t *testing.T) (MetricsRepository, func()) {
 	require.NoError(t, err)
 
 	config := DefaultDatabaseConfig()
+	config.MetricsFlushInterval = 100 * time.Millisecond // Fast flush for testing
+	config.MetricsBatchSize = 10                         // Small batch size for testing
 	repo, err := NewMetricsRepository(db, config)
 	require.NoError(t, err)
 
 	cleanup := func() {
+		repo.Close()
 		db.Close()
 	}
 
-	return repo, cleanup
+	return repo, db, cleanup
 }
 
 func TestMetricsRepository_StoreAndGetMetric(t *testing.T) {
-	repo, cleanup := setupTestMetricsRepository(t)
+	repo, db, cleanup := setupTestMetricsRepository(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -57,6 +60,13 @@ func TestMetricsRepository_StoreAndGetMetric(t *testing.T) {
 	err := repo.StoreMetric(ctx, metric)
 	assert.NoError(t, err)
 
+	// Flush pending metrics to ensure they're stored
+	err = repo.FlushPendingMetrics()
+	assert.NoError(t, err)
+
+	// Wait for processing
+	time.Sleep(300 * time.Millisecond)
+
 	// Test retrieving metrics
 	query := &MetricsQuery{
 		PipelineID: "test-pipeline-1",
@@ -65,6 +75,20 @@ func TestMetricsRepository_StoreAndGetMetric(t *testing.T) {
 
 	metrics, err := repo.GetMetrics(ctx, query)
 	assert.NoError(t, err)
+
+	// Debug: Check if there are any metrics at all
+	if len(metrics) == 0 {
+		t.Logf("No metrics found, checking database directly")
+		// Check database directly
+		var count int
+		err = db.QueryRow("SELECT COUNT(*) FROM pipeline_metrics").Scan(&count)
+		if err != nil {
+			t.Logf("Error querying database: %v", err)
+		} else {
+			t.Logf("Total metrics in database: %d", count)
+		}
+	}
+
 	assert.Len(t, metrics, 1)
 
 	retrieved := metrics[0]
@@ -77,7 +101,7 @@ func TestMetricsRepository_StoreAndGetMetric(t *testing.T) {
 }
 
 func TestMetricsRepository_StoreBatchMetrics(t *testing.T) {
-	repo, cleanup := setupTestMetricsRepository(t)
+	repo, _, cleanup := setupTestMetricsRepository(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -108,6 +132,13 @@ func TestMetricsRepository_StoreBatchMetrics(t *testing.T) {
 	err := repo.StoreBatchMetrics(ctx, metrics)
 	assert.NoError(t, err)
 
+	// Flush pending metrics to ensure they're stored
+	err = repo.FlushPendingMetrics()
+	assert.NoError(t, err)
+
+	// Wait for processing
+	time.Sleep(300 * time.Millisecond)
+
 	// Test retrieval
 	query := &MetricsQuery{
 		PipelineID: "test-pipeline-1",
@@ -120,7 +151,7 @@ func TestMetricsRepository_StoreBatchMetrics(t *testing.T) {
 }
 
 func TestMetricsRepository_GetAggregatedMetrics(t *testing.T) {
-	repo, cleanup := setupTestMetricsRepository(t)
+	repo, _, cleanup := setupTestMetricsRepository(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -151,6 +182,13 @@ func TestMetricsRepository_GetAggregatedMetrics(t *testing.T) {
 	err := repo.StoreBatchMetrics(ctx, metrics)
 	require.NoError(t, err)
 
+	// Flush pending metrics to ensure they're stored
+	err = repo.FlushPendingMetrics()
+	require.NoError(t, err)
+
+	// Wait for processing
+	time.Sleep(300 * time.Millisecond)
+
 	// Test aggregation
 	query := &AggregationQuery{
 		PipelineID:  "test-pipeline-1",
@@ -169,7 +207,7 @@ func TestMetricsRepository_GetAggregatedMetrics(t *testing.T) {
 }
 
 func TestMetricsRepository_SessionManagement(t *testing.T) {
-	repo, cleanup := setupTestMetricsRepository(t)
+	repo, _, cleanup := setupTestMetricsRepository(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -223,7 +261,7 @@ func TestMetricsRepository_SessionManagement(t *testing.T) {
 }
 
 func TestMetricsRepository_EventManagement(t *testing.T) {
-	repo, cleanup := setupTestMetricsRepository(t)
+	repo, _, cleanup := setupTestMetricsRepository(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -262,7 +300,7 @@ func TestMetricsRepository_EventManagement(t *testing.T) {
 }
 
 func TestMetricsRepository_CleanExpiredMetrics(t *testing.T) {
-	repo, cleanup := setupTestMetricsRepository(t)
+	repo, _, cleanup := setupTestMetricsRepository(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -298,7 +336,7 @@ func TestMetricsRepository_CleanExpiredMetrics(t *testing.T) {
 }
 
 func TestMetricsRepository_GetMetricsStats(t *testing.T) {
-	repo, cleanup := setupTestMetricsRepository(t)
+	repo, _, cleanup := setupTestMetricsRepository(t)
 	defer cleanup()
 
 	ctx := context.Background()
@@ -316,6 +354,13 @@ func TestMetricsRepository_GetMetricsStats(t *testing.T) {
 
 	err := repo.StoreMetric(ctx, metric)
 	require.NoError(t, err)
+
+	// Flush pending metrics to ensure they're stored
+	err = repo.FlushPendingMetrics()
+	require.NoError(t, err)
+
+	// Wait for processing
+	time.Sleep(300 * time.Millisecond)
 
 	// Get stats
 	stats, err := repo.GetMetricsStats(ctx)
