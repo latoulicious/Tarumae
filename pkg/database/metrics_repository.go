@@ -17,6 +17,7 @@ type metricsRepository struct {
 	// Enhanced components
 	batchProcessor   *MetricsBatchProcessor
 	retentionManager *MetricsRetentionManager
+	sessionQueries   *SessionQueryExtensions
 
 	// Prepared statements for performance
 	insertMetricStmt  *sql.Stmt
@@ -56,6 +57,9 @@ func NewMetricsRepository(db *sql.DB, config *DatabaseConfig) (MetricsRepository
 	// Initialize retention manager
 	retentionManager := NewMetricsRetentionManager(db, config)
 	repo.retentionManager = retentionManager
+
+	// Initialize session query extensions
+	repo.sessionQueries = NewSessionQueryExtensions(db)
 
 	// Start background components
 	if err := repo.batchProcessor.Start(); err != nil {
@@ -145,10 +149,10 @@ func (r *metricsRepository) prepareStatements() error {
 		return fmt.Errorf("failed to prepare insert metric statement: %w", err)
 	}
 
-	// Prepare insert session statement
+	// Prepare insert session statement (keeping for other methods that might use it)
 	r.insertSessionStmt, err = r.db.Prepare(`
-		INSERT INTO pipeline_sessions (pipeline_id, guild_id, channel_id, user_id, stream_url, started_at)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO pipeline_sessions (pipeline_id, guild_id, channel_id, user_id, stream_url, started_at, total_errors, total_recoveries)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare insert session statement: %w", err)
@@ -368,13 +372,21 @@ func (r *metricsRepository) GetAggregatedMetrics(ctx context.Context, query *Agg
 
 // CreateSession creates a new pipeline session
 func (r *metricsRepository) CreateSession(ctx context.Context, session *PipelineSession) error {
-	_, err := r.insertSessionStmt.ExecContext(ctx,
+	// Use direct SQL instead of prepared statement to avoid the NULL value issue
+	query := `
+		INSERT INTO pipeline_sessions (pipeline_id, guild_id, channel_id, user_id, stream_url, started_at, total_errors, total_recoveries)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	_, err := r.db.ExecContext(ctx, query,
 		session.PipelineID,
 		session.GuildID,
 		session.ChannelID,
 		session.UserID,
 		session.StreamURL,
 		session.StartedAt,
+		session.TotalErrors,
+		session.TotalRecoveries,
 	)
 
 	if err != nil {
@@ -412,6 +424,7 @@ func (r *metricsRepository) GetSession(ctx context.Context, sessionID string) (*
 
 	session := &PipelineSession{}
 	var finalState sql.NullString
+	var totalErrors, totalRecoveries sql.NullInt64
 	err := r.db.QueryRowContext(ctx, query, sessionID).Scan(
 		&session.PipelineID,
 		&session.GuildID,
@@ -421,8 +434,8 @@ func (r *metricsRepository) GetSession(ctx context.Context, sessionID string) (*
 		&session.StartedAt,
 		&session.EndedAt,
 		&finalState,
-		&session.TotalErrors,
-		&session.TotalRecoveries,
+		&totalErrors,
+		&totalRecoveries,
 		&session.CreatedAt,
 	)
 
@@ -435,6 +448,12 @@ func (r *metricsRepository) GetSession(ctx context.Context, sessionID string) (*
 
 	if finalState.Valid {
 		session.FinalState = finalState.String
+	}
+	if totalErrors.Valid {
+		session.TotalErrors = int(totalErrors.Int64)
+	}
+	if totalRecoveries.Valid {
+		session.TotalRecoveries = int(totalRecoveries.Int64)
 	}
 
 	return session, nil
@@ -460,6 +479,7 @@ func (r *metricsRepository) GetActiveSessions(ctx context.Context) ([]*PipelineS
 	for rows.Next() {
 		session := &PipelineSession{}
 		var finalState sql.NullString
+		var totalErrors, totalRecoveries sql.NullInt64
 		err := rows.Scan(
 			&session.PipelineID,
 			&session.GuildID,
@@ -469,8 +489,8 @@ func (r *metricsRepository) GetActiveSessions(ctx context.Context) ([]*PipelineS
 			&session.StartedAt,
 			&session.EndedAt,
 			&finalState,
-			&session.TotalErrors,
-			&session.TotalRecoveries,
+			&totalErrors,
+			&totalRecoveries,
 			&session.CreatedAt,
 		)
 		if err != nil {
@@ -479,6 +499,12 @@ func (r *metricsRepository) GetActiveSessions(ctx context.Context) ([]*PipelineS
 
 		if finalState.Valid {
 			session.FinalState = finalState.String
+		}
+		if totalErrors.Valid {
+			session.TotalErrors = int(totalErrors.Int64)
+		}
+		if totalRecoveries.Valid {
+			session.TotalRecoveries = int(totalRecoveries.Int64)
 		}
 
 		sessions = append(sessions, session)
@@ -926,4 +952,46 @@ func (r *metricsRepository) StoreBatchMetricsEnhanced(ctx context.Context, metri
 	}
 
 	return r.batchProcessor.AddMetrics(metrics)
+}
+
+// Session analytics and query methods
+
+// GetSessionsByTimeRange retrieves sessions within a specific time range
+func (r *metricsRepository) GetSessionsByTimeRange(ctx context.Context, startTime, endTime time.Time) ([]*PipelineSession, error) {
+	return r.sessionQueries.GetSessionsByTimeRange(ctx, startTime, endTime)
+}
+
+// GetSessionsByGuild retrieves sessions for a specific guild
+func (r *metricsRepository) GetSessionsByGuild(ctx context.Context, guildID string, limit int) ([]*PipelineSession, error) {
+	return r.sessionQueries.GetSessionsByGuild(ctx, guildID, limit)
+}
+
+// GetSessionDurationStats calculates session duration statistics
+func (r *metricsRepository) GetSessionDurationStats(ctx context.Context) (*SessionDurationStats, error) {
+	return r.sessionQueries.GetSessionDurationStats(ctx)
+}
+
+// GetSessionsByState returns session counts grouped by final state
+func (r *metricsRepository) GetSessionsByState(ctx context.Context) (map[string]int64, error) {
+	return r.sessionQueries.GetSessionsByState(ctx)
+}
+
+// GetSessionsByHour returns session counts grouped by hour of day
+func (r *metricsRepository) GetSessionsByHour(ctx context.Context) (map[int]int64, error) {
+	return r.sessionQueries.GetSessionsByHour(ctx)
+}
+
+// GetTopErrorTypes returns the most common error types from events
+func (r *metricsRepository) GetTopErrorTypes(ctx context.Context, limit int) ([]ErrorTypeCount, error) {
+	return r.sessionQueries.GetTopErrorTypes(ctx, limit)
+}
+
+// GetOrphanedSessions returns sessions that have been active for too long
+func (r *metricsRepository) GetOrphanedSessions(ctx context.Context, cutoffTime time.Time) ([]*PipelineSession, error) {
+	return r.sessionQueries.GetOrphanedSessions(ctx, cutoffTime)
+}
+
+// GetSessionErrorRates calculates error rates for sessions
+func (r *metricsRepository) GetSessionErrorRates(ctx context.Context) (*SessionErrorRates, error) {
+	return r.sessionQueries.GetSessionErrorRates(ctx)
 }

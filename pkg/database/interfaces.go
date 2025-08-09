@@ -82,6 +82,16 @@ type MetricsRepository interface {
 	GetRetentionStats() (*RetentionStats, error)
 	RunRetentionCleanup(ctx context.Context) (*RetentionStats, error)
 
+	// Session analytics and queries
+	GetSessionsByTimeRange(ctx context.Context, startTime, endTime time.Time) ([]*PipelineSession, error)
+	GetSessionsByGuild(ctx context.Context, guildID string, limit int) ([]*PipelineSession, error)
+	GetSessionDurationStats(ctx context.Context) (*SessionDurationStats, error)
+	GetSessionsByState(ctx context.Context) (map[string]int64, error)
+	GetSessionsByHour(ctx context.Context) (map[int]int64, error)
+	GetTopErrorTypes(ctx context.Context, limit int) ([]ErrorTypeCount, error)
+	GetOrphanedSessions(ctx context.Context, cutoffTime time.Time) ([]*PipelineSession, error)
+	GetSessionErrorRates(ctx context.Context) (*SessionErrorRates, error)
+
 	// Lifecycle management
 	Close() error
 }
